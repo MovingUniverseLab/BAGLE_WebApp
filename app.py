@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 
-from bagle import model, model_fitter
+from bagle import model
 import celerite
 
 import panel as pn
@@ -21,357 +21,15 @@ from bokeh.models import Tooltip
 from bokeh.models.dom import HTML
 import param
 
-
-################################################
-# Initial BAGLE Configs
-################################################
-# List of model parameterizations
-PSPL = [
-    'PSPL_Phot_noPar_Param1', 'PSPL_Phot_noPar_Param2', 
-    
-    'PSPL_Phot_Par_Param1', 'PSPL_Phot_Par_Param2',
-    
-    'PSPL_Phot_noPar_GP_Param1', 'PSPL_Phot_noPar_GP_Param2',
-    
-    'PSPL_Phot_Par_GP_Param1', 'PSPL_Phot_Par_GP_Param1_2', 
-    'PSPL_Phot_Par_GP_Param2', 'PSPL_Phot_Par_GP_Param2_2', 'PSPL_Phot_Par_GP_Param2_3',
-    
-    'PSPL_Astrom_Par_Param3', 'PSPL_Astrom_Par_Param4',
-    
-    'PSPL_PhotAstrom_noPar_Param1', 'PSPL_PhotAstrom_noPar_Param2', 'PSPL_PhotAstrom_noPar_Param3', 
-    'PSPL_PhotAstrom_noPar_Param4', 
-    
-    'PSPL_PhotAstrom_noPar_GP_Param1', 'PSPL_PhotAstrom_noPar_GP_Param2',
-    
-    'PSPL_PhotAstrom_Par_Param1', 'PSPL_PhotAstrom_Par_Param2', 'PSPL_PhotAstrom_Par_Param3', 
-    'PSPL_PhotAstrom_Par_Param4', 'PSPL_PhotAstrom_Par_Param5',
-    
-    'PSPL_PhotAstrom_Par_GP_Param1', 'PSPL_PhotAstrom_Par_GP_Param2', 
-    'PSPL_PhotAstrom_Par_GP_Param3', 'PSPL_PhotAstrom_Par_GP_Param3_1',
-    'PSPL_PhotAstrom_Par_GP_Param4',
-]
-
-# PSPL + GP currently errored in BAGLE
-PSBL = [
-    'PSBL_Phot_noPar_Param1', 
-    
-    'PSBL_Phot_Par_Param1',
-    
-#     'PSBL_Phot_noPar_GP_Param1', 
-    
-#     'PSBL_Phot_Par_GP_Param1',
-    
-    'PSBL_PhotAstrom_noPar_Param1', 'PSBL_PhotAstrom_noPar_Param2', 'PSBL_PhotAstrom_noPar_Param3',
-    'PSBL_PhotAstrom_Par_Param1', 'PSBL_PhotAstrom_Par_Param2', 'PSBL_PhotAstrom_Par_Param3', 'PSBL_PhotAstrom_Par_Param7',
-    
-#     'PSBL_PhotAstrom_noPar_GP_Param1', 'PSBL_PhotAstrom_noPar_GP_Param2',
-    
-#     'PSBL_PhotAstrom_Par_GP_Param1', 'PSBL_PhotAstrom_Par_GP_Param2'
-]
-
-BSPL = [
-    'BSPL_Phot_noPar_Param1', 
-    
-    'BSPL_Phot_Par_Param1',
-    
-    'BSPL_Phot_noPar_GP_Param1',
-    
-    'BSPL_Phot_Par_GP_Param1',
-    
-    'BSPL_PhotAstrom_noPar_Param1', 'BSPL_PhotAstrom_noPar_Param2', 'BSPL_PhotAstrom_noPar_Param3',
-    
-    'BSPL_PhotAstrom_Par_Param1', 'BSPL_PhotAstrom_Par_Param2', 'BSPL_PhotAstrom_Par_Param3',
-    
-    'BSPL_PhotAstrom_noPar_GP_Param1', 'BSPL_PhotAstrom_noPar_GP_Param2', 'BSPL_PhotAstrom_noPar_GP_Param3',
-    
-    'BSPL_PhotAstrom_Par_GP_Param1', 'BSPL_PhotAstrom_Par_GP_Param2', 'BSPL_PhotAstrom_Par_GP_Param3'
-]
-
-BSBL = [
-    'BSBL_PhotAstrom_noPar_Param1', 'BSBL_PhotAstrom_noPar_Param2',
-    
-    'BSBL_PhotAstrom_Par_Param1', 'BSBL_PhotAstrom_Par_Param2'
-]
-
-ALL_MODS = PSPL + PSBL + BSPL + BSBL
-
-# Dictionary for default slider ranges of model parameters
-    # Note: the list order is [Units, Default, Min, Max, Step]
-DEFAULT_RANGES = {
-    'Time': ['MJD', 56500, 54500, 56500, 0.1],
-
-    'alpha': ['deg', 5, 0, 90, 0.1],
-    'alphaL': ['deg', 5, 0, 90, 0.1],
-    'alphaS': ['deg', 5, 0, 90, 0.1],
-    'b_sff': [None, 0.75, 0, 1.5, 0.1],
-    'beta': ['mas', 0.2, -2, 2, 0.01],
-    'beta_p': ['mas', 0.2, -2, 2, 0.01],
-    'decL': ['deg', 30, -90, 90, 0.1],
-    'dL': ['pc', 3500, 1000, 8000, 0.1],
-    'dL_dS': [None, 0.5, 0.01, 0.999, 0.01],
-    'dS': ['pc', 5000, 100, 10000, 0.1],
-    'fratio_bin': [None, 0.3, 0.01, 1.5, 0.01],
-    'gp_log_S0': [None, -8.5, -15, 5, 0.1],
-    'gp_log_omega0': ['log(1/days)', 1, -10, 10, 0.1],
-    'gp_log_omega04_S0': [None, -8.5, -15, 5, 0.1],
-    'gp_log_omega0_S0': [None, -10, -15, 5, 0.1],
-    'gp_log_rho': ['log(days)', 1.3, -2, 2, 0.1],
-    'gp_log_sigma': [None, -4, -10, 10, 0.1],
-    'gp_rho': ['days', 20, 0.01, 100, -0.1],
-    'log10_thetaE': ['log10(mas)', 0.5, -1, 1, 0.1],
-    'mL': ['Msun', 10, 0.1, 100, 0.1],
-    'mLp': ['Msun', 10, 0.1, 100, 0.1],
-    'mLs': ['Msun', 10, 0.1, 100, 0.1],
-    'mag_base': ['mag', 19, 14, 24, 0.1],
-    'mag_src': ['mag', 19, 14, 24, 0.1],
-    'mag_src_pri':['mag', 19, 14, 24, 0.1],
-    'mag_src_sec': ['mag', 19, 14, 24, 0.1],
-    'muL_E': ['mas/yr', 0, -20, 20, 0.1],
-    'muL_N': ['mas/yr', 0, -20, 20, 0.1],
-    'muS_E': ['mas/yr', 2, -20, 20, 0.1],
-    'muS_N': ['mas/yr', 0, -20, 20, 0.1],
-    'phi': ['deg', 10, 0, 90, 0.1],
-    'piEN_piEE': [None, 1, -2, 2, 0.01],
-    'piE_E': ['thetaE', 0.05, -1.0, 1.0, 0.01],
-    'piE_N': ['thetaE', 0.05, -1.0, 1.0, 0.01],
-    'piS': ['mas', 0.12, 0.01, 1.0, 0.1],
-    'q': [None, 1, 0.1, 5, 0.1],
-    'raL': ['deg', 50, 0, 360, 0.1],
-    'sep': ['mas', 5, 0.5, 10, 0.1],
-    'sepL': ['mas', 5, 0.5, 10, 0.1],
-    'sepS': ['mas', 5, 0.5, 10, 0.1],
-    't0': ['MJD', 55500, 55000, 56000, 0.1],
-    't0_p': ['MJD', 55500, 55000, 56000, 0.1],
-    't0_prim': ['MJD', 55500, 55000, 56000, 0.1],
-    'tE': ['days', 200.0, 1.0, 400.0, 0.1],
-    'thetaE': ['mas', 2.0, 0.0, 10.0, 0.1],
-    'u0_amp': ['thetaE', 0.5, -1.0, 1.0, 0.1],
-    'u0_amp_prim': ['thetaE', 0.5, -1.0, 1.0, 0.1],
-    'xS0_E': ['arcsec', 1.0, -5.0, 5.0, 0.1],
-    'xS0_N': ['arcsec', 1.0, -5.0, 5.0, 0.1],
-
-    'alphaL_rad': ['rad', None, None, None, None],
-    'alphaS_rad': ['rad', None, None, None, None],
-    'alpha_rad': ['rad', None, None, None, None],
-    'm1': ['arcsec^2', None, None, None, None],
-    'm2': ['arcsec^2', None, None, None, None],
-    'muL': ['mas/yr', None, None, None, None],
-    'muRel': ['mas/yr', None, None, None, None],
-    'muRel_E': ['mas/yr', None, None, None, None],
-    'muRel_N': ['mas/yr', None, None, None, None],
-    'muRel_amp': ['mas/yr', None, None, None, None],
-    'muRel_hat': ['mas/yr', None, None, None, None],
-    'muS': ['mas/yr', None, None, None, None],
-    'phiL': ['deg', 10, 0, 90, 0.1],
-    'phiL_rad': ['rad', None, None, None, None],
-    'phi_piE': ['deg', None, None, None, None],
-    'phi_piE_rad': ['rad', None, None, None, None],
-    'phi_rad': ['rad', None, None, None, None],
-    'phi_rho1_rad': ['rad', None, None, None, None],
-    'piE': ['thetaE', None, None, None, None],
-    'piE_amp': ['thetaE', None, None, None, None],
-    'piL': ['mas', None, None, None, None],
-    'piRel': ['mas', None, None, None, None],
-    't0_pri': ['MJD', None, None, None, None],
-    't0_sec': ['MJD', None, None, None, None],
-    'thetaE_E': ['mas', None, None, None, None],
-    'thetaE_N': ['mas', None, None, None, None],
-    'thetaE_amp': ['mas', None, None, None, None],
-    'thetaE_hat': ['mas', None, None, None, None],
-    'thetaS0': ['mas', None, None, None, None],
-    'u0': ['thetaE', None, None, None, None],
-    'u0_amp_p': ['thetaE', None, None, None, None],
-    'u0_amp_pri': ['thetaE', None, None, None, None],
-    'u0_amp_sec': ['thetaE', None, None, None, None],
-    'u0_hat': ['thetaE', None, None, None, None],
-    'u0_hat_p': ['thetaE', None, None, None, None],
-    'u0_p': ['thetaE', None, None, None, None],
-    'u0_pri': ['thetaE', None, None, None, None],
-    'u0_sec': ['thetaE', None, None, None, None],
-    'xL0': ['arcsec', None, None, None, None],
-    'xL0_E': ['arcsec', None, None, None, None],
-    'xL0_N': ['arcsec', None, None, None, None],
-    'xL1_over_theta': [None, None, None, None, None],
-    'xL2_over_theta': [None, None, None, None, None],
-    'xS0': ['arcsec', None, None, None, None],
-    'xS0_pri': ['arcsec', None, None, None, None],
-    'xS0_sec': ['arcsec', None, None, None, None]
-}
+import globals
 
 
 ################################################
-# Initial Panel Configs
+# Initialize Panel
 ################################################
 # Extensions and themes used by panel
 pn.extension('tabulator', 'plotly', design = 'bootstrap')
 pn.config.theme = 'dark'
-
-# Page colors
-GP_ALPHA = 0.7
-CLRS = {
-    'main': 'rgb(18, 18, 18)',
-    'secondary': 'rgb(43, 48, 53)',
-    'light': 'rgb(75, 255, 239)',
-    'selected': 'rgb(101, 175, 233)',
-    'gridline': 'rgb(102, 102, 102)',
-    'zeroline': 'rgb(191, 191, 191)',
-    'gp_cycle': [f'rgba(34, 255, 167, {GP_ALPHA})',
-                 f'rgba(246, 249, 38, {GP_ALPHA})',
-                 f'rgba(238, 166, 251, {GP_ALPHA})',
-                 f'rgba(201, 251, 229, {GP_ALPHA})',
-                 f'rgba(0, 181, 247, {GP_ALPHA})',
-                 f'rgba(227, 238, 158, {GP_ALPHA})',
-                 f'rgba(252, 105, 85, {GP_ALPHA})',
-                 f'rgba(134, 206, 0, {GP_ALPHA})',
-                 f'rgba(110, 137, 156, {GP_ALPHA})',
-                 f'rgba(15, 133, 84, {GP_ALPHA})']
-}
-
-# Dictionary for font sizes
-FONTSIZES = {
-    'page_title':' 1.6rem',
-    'header': '1.4rem',
-    'paramztn_error': '1.4rem',
-    'dropdown': '0.7rem',
-    'plus': '0.8rem',
-    'btn': '0.7rem',
-    'slider': '0.8rem',
-    'table_title': '0.75rem',
-    'table_txt': '0.75rem',
-    'error_title': '1.5rem',
-    'error_txt': '1rem',
-    'tooltip': '0.7rem',
-    'summary_txt': '0.95rem',
-    'plot_axes_ticks': 10,
-    'plot_axes_labels': 14,
-    'plot_title': 16,
-    'legendgroup': 10
-}
-
-# CSS stylesheet for drop down menus
-DROPDOWN_STYLE = '''
-    select.bk-input {
-        font-size: %s;
-        text-align: center;
-        border: white solid 0.08rem;
-        padding-top: 0rem;
-        padding-bottom: 0rem;
-    }
-'''%(FONTSIZES['dropdown'])
-
-# CSS stylesheet for push buttons
-BASE_BTN_STYLE = '''
-    :host {
-        --design-primary-color: %s;
-        margin: 0.4rem;
-        flex-grow: 1;
-    }
-    
-    :host(.solid) .bk-btn {
-        color: white;
-        border: 0.08rem solid white;
-        border-radius: 0.8rem;
-        font-size: %s;
-        padding-top: 0.3rem;
-        padding-bottom: 0.3rem;
-    } 
-    
-    :host(.solid) .bk-btn:hover {
-        color: %s;
-        border-color: %s;
-    }
-'''%(CLRS['secondary'], FONTSIZES['btn'], CLRS['light'], CLRS['light'])
-
-SELECTED_BTN_STYLE = '''
-    :host {
-        --design-primary-color: %s;
-        margin: 0.4rem;
-        flex-grow: 1;
-    }
-    
-    :host(.solid) .bk-btn {
-        color: %s;
-        border: 0.08rem solid %s;
-        border-radius: 0.8rem;
-        font-size: %s;
-        padding-top: 0.3rem;
-        padding-bottom: 0.3rem;
-    } 
-    
-'''%(CLRS['main'], CLRS['selected'], CLRS['selected'], FONTSIZES['btn'])
-
-# CSS stylesheet for sliders
-SLIDER_STYLE = '''
-    :host {
-        --design-primary-color: %s;
-        --design-secondary-color: %s;
-    }
-    
-    .bk-slider-title {
-        font-size: %s;
-    }
-'''%(CLRS['light'], CLRS['main'], FONTSIZES['slider'])
-
-# CSS stylesheet for tabulator
-TABLTR_STYLE = '''
-    .tabulator-col-title {
-        font-size: %s;
-    }
-    
-    .tabulator-cell {
-        font-size: %s;
-    }
-
-    .pnx-tabulator {
-        border: white solid 0.08rem !important;
-    }
-'''%(FONTSIZES['table_title'], FONTSIZES['table_txt'])
-
-# CSS stylesheet for tabs
-BASE_TABS_STYLE = '''
-    .bk-tab {
-        color:white;
-    }
-    
-    .bk-tab.bk-active {
-        font-weight: bold;
-        color: %s !important;
-        background-color: %s !important;
-        border-color: white !important;
-    }
-'''%(CLRS['selected'], CLRS['secondary'])
-
-ERRORED_TABS_STYLE = '''
-    .bk-tab {
-        font-weight: bold;
-        font-size: 1rem;
-        color:red;
-    }
-    
-    .bk-tab.bk-active {
-        font-weight: bold;
-        font-size: 1rem;
-        color: red !important;
-        background-color: %s !important;
-        border-color: red !important;
-    }
-'''%(CLRS['secondary'])
-
-# Configuration for photometry and astrometry plots
-PHOT_CONFIGS = {'toImageButtonOptions': {'filename': 'photometry', 'scale': 5}, 
-                'displayModeBar': True, 'displaylogo': False,
-                'modeBarButtonsToRemove': ['autoScale', 'lasso', 'select']}
-AST_CONFIGS = {'toImageButtonOptions': {'filename': 'astrometry', 'scale': 5}, 
-               'displayModeBar': True, 'displaylogo': False,
-               'modeBarButtonsToRemove': ['autoScale', 'lasso', 'select']}
-
-PHOT_FORMAT = ('<b>Time</b>: %{x:.3f}' +
-            '<br><b>Mag.</b>: %{y:.3f}' +
-            '<extra></extra>')
-AST_FORMAT = ('<b>Time:</b> %{text:.3f}' + 
-           '<br><span style="font-size:1rem">&#916;&#120572;</span><sup>*</sup>: %{x:.5f}' +
-           '<br><span style="font-size:1rem">&#916;&#120575;</span>: %{y:.5f}' +
-           '<extra></extra>') 
 
 
 ################################################
@@ -387,7 +45,7 @@ class ModSelect(Viewer):
     #######################
     # Model header
     mod_header = pn.widgets.StaticText(value = 'Model:',
-                                       styles = {'font-size': FONTSIZES['header'], 
+                                       styles = {'font-size': globals.FONTSIZES['header'], 
                                                  'font-weight':'550', 
                                                  'margin-right':'0.9rem'})
 
@@ -398,26 +56,26 @@ class ModSelect(Viewer):
                                                 'Binary-Source Point-Lens': 'BSPL',
                                                 'Binary-Source Binary-Lens': 'BSBL'}, 
                                      align = 'center', sizing_mode = 'scale_width', 
-                                     stylesheets = [DROPDOWN_STYLE])
+                                     stylesheets = [globals.DROPDOWN_STYLE])
 
     data_type = pn.widgets.Select(name = '', 
                                   options = {'Photometry': 'Phot', 
                                              'Astrometry': 'Astrom', 
                                              'Photometry-Astrometry': 'PhotAstrom'}, 
                                   align = 'center', sizing_mode = 'scale_width', 
-                                  stylesheets = [DROPDOWN_STYLE])
+                                  stylesheets = [globals.DROPDOWN_STYLE])
 
     par_type = pn.widgets.Select(name = '', 
                                  options = {'No Parallax': 'noPar', 
                                             'Parallax': 'Par'}, 
                                  align = 'center', sizing_mode = 'scale_width', 
-                                 stylesheets = [DROPDOWN_STYLE])
+                                 stylesheets = [globals.DROPDOWN_STYLE])
 
     gp_type = pn.widgets.Select(name = '', 
                                 options = {'No Gaussian Process': '', 
                                             'Gaussian Process': 'GP'}, 
                                 align = 'center', sizing_mode = 'scale_width', 
-                                stylesheets = [DROPDOWN_STYLE])
+                                stylesheets = [globals.DROPDOWN_STYLE])
     
     #######################
     # Methods
@@ -436,7 +94,7 @@ class ModSelect(Viewer):
         
         for i in insert_idx:
             plus = pn.widgets.StaticText(name = '', value = '+', align = 'center',
-                                         styles = {'font-size':FONTSIZES['plus']})
+                                         styles = {'font-size':globals.FONTSIZES['plus']})
             objs = np.insert(objs, i, plus) 
             
         
@@ -483,13 +141,13 @@ class ParamztnSelect(Viewer):
 
     # Parameterization Header
     paramztn_header = pn.widgets.StaticText(value = f'Parameterization:', align = 'start',
-                                            styles = {'font-size':FONTSIZES['header'],
+                                            styles = {'font-size':globals.FONTSIZES['header'],
                                                       'font-weight':'550', 
                                                       'margin-right':'1rem'})
     # Error message in case of no parameterizations
     paramztn_error = pn.widgets.StaticText(
         value = 'ERROR: There are currently no supported parameterizations for this model. Please try a different selection.',
-        styles = {'font-size':FONTSIZES['paramztn_error'], 
+        styles = {'font-size':globals.FONTSIZES['paramztn_error'], 
                   'text-align':'center',
                   'font-weight':'550', 
                   'margin-bottom':'-0.2rem'},
@@ -521,7 +179,7 @@ class ParamztnSelect(Viewer):
         elif mod_types['gp'] == 'GP':
             mod_regex = '_'.join(list(mod_types.values())) + '_Param'
 
-        mod_paramztns = [mod for mod in ALL_MODS if re.match(mod_regex, mod)]
+        mod_paramztns = [mod for mod in globals.ALL_MODS if re.match(mod_regex, mod)]
             
         # No parameterizations found for selected model
         if len(mod_paramztns) == 0:
@@ -533,7 +191,7 @@ class ParamztnSelect(Viewer):
                 # Check if button exists
                 if paramztn in self.paramztn_btns.keys():
                     # Reset style of existing button
-                    self.paramztn_btns[paramztn].stylesheets = [BASE_BTN_STYLE]
+                    self.paramztn_btns[paramztn].stylesheets = [globals.BASE_BTN_STYLE]
 
                 else:
                     # Write HTML for button tooltip
@@ -542,8 +200,8 @@ class ParamztnSelect(Viewer):
                     tooltip_html = ''.join([f'''<span>{param}</span>''' for param in all_param_names])
                     tooltip_html = HTML(f'''
                         <div style = "display:flex; align-items:center; flex-direction:column; 
-                                      padding:0.25rem; border:0.04rem black solid; color:{CLRS['main']};
-                                      font-size:{FONTSIZES['tooltip']}; font-weight:bold;">
+                                      padding:0.25rem; border:0.04rem black solid; color:{globals.CLRS['main']};
+                                      font-size:{globals.FONTSIZES['tooltip']}; font-weight:bold;">
                             {tooltip_html}
                         </div>
                     ''')
@@ -552,7 +210,7 @@ class ParamztnSelect(Viewer):
                     self.paramztn_btns[paramztn] = pn.widgets.Button(name = paramztn, button_type = 'primary', 
                                                                      description = (Tooltip(content = tooltip_html, 
                                                                                             position = 'bottom')),
-                                                                     stylesheets = [BASE_BTN_STYLE])
+                                                                     stylesheets = [globals.BASE_BTN_STYLE])
 
                 # Add/Update on-click action for button
                 self.paramztn_btns[paramztn].on_click(partial(self._change_selected_btn, 
@@ -560,13 +218,8 @@ class ParamztnSelect(Viewer):
             # Get relevant buttons and update paramztn_box
             self.paramztn_box.objects = [self.paramztn_btns[key] for key in mod_paramztns]
             self.paramztn_layout.objects = [self.paramztn_header, self.paramztn_box]
-    
             
     def get_param_names(self, paramztn, mod_types, return_phot_names = False):
-        '''
-        Gets parameter names for a given parameterization.
-        '''
-        
         # Get paramaterization class
         class_num = re.search('Param.*', paramztn).group()
         if mod_types['gp'] == 'GP':
@@ -590,17 +243,13 @@ class ParamztnSelect(Viewer):
             return all_param_names
     
     def _change_selected_btn(self, event, mod_types): 
-        '''
-        Changes the CSS of parameterization buttons and the relevent selected parameters.
-        '''
-        
         if (event.obj.name != self.selected_paramztn):
             # Reset CSS of old selected button if it exists
             if self.selected_paramztn != None:
-                self.paramztn_btns[self.selected_paramztn].stylesheets = [BASE_BTN_STYLE]
+                self.paramztn_btns[self.selected_paramztn].stylesheets = [globals.BASE_BTN_STYLE]
             
             # Change CSS of new selected button
-            event.obj.stylesheets = [SELECTED_BTN_STYLE]
+            event.obj.stylesheets = [globals.SELECTED_BTN_STYLE]
 
             # Update selected parameters and parameterization
             self.selected_paramztn = event.obj.name
@@ -638,14 +287,14 @@ class ParamTabs(Viewer):
                                                    format = '1[.]000',
                                                    margin = (10, 12, -2, 12),
                                                    design = Material,
-                                                   stylesheets = [SLIDER_STYLE])
+                                                   stylesheets = [globals.SLIDER_STYLE])
 
     param_sliders['Num_pts'] = pn.widgets.IntSlider(name = 'Number of Points (Trace Resolution)',
-                                                    start = 1000, value = 3500, end = 10000, step = 100,
+                                                    start = 1000, value = 3500, end = 20000, step = 100,
                                                     format = '1[.]000',
                                                     margin = (10, 12, -2, 12),
                                                     design = Material,
-                                                    stylesheets = [SLIDER_STYLE])
+                                                    stylesheets = [globals.SLIDER_STYLE])
 
     # Slider used for GP prior samples
     param_sliders['Num_samps'] = pn.widgets.IntSlider(name = 'Number of GP Samples',
@@ -654,7 +303,7 @@ class ParamTabs(Viewer):
                                                       format = '1[.]000',
                                                       margin = (10, 0, -2, 12),
                                                       design = Material,
-                                                      stylesheets = [SLIDER_STYLE])
+                                                      stylesheets = [globals.SLIDER_STYLE])
     
     # Layout for model-dependent sliders
     mod_sliders = pn.FlexBox(flex_wrap = 'wrap')
@@ -676,7 +325,7 @@ class ParamTabs(Viewer):
                                        text_align = 'left', layout = 'fit_columns',
                                        editors = {'Units': None}, 
                                        sizing_mode = 'stretch_both',
-                                       stylesheets = [TABLTR_STYLE])
+                                       stylesheets = [globals.TABLTR_STYLE])
     
     # HTML message for errored slider range settings
     error_msg = pn.pane.HTML(object = None, name = 'ERRORED SLIDERS')
@@ -694,7 +343,7 @@ class ParamTabs(Viewer):
                        'Parameter Summary':'summary'}
     }
     dashboard_settings_header = pn.pane.HTML(
-        object = f'''<span style="font-size:{FONTSIZES['header']}"><u><b>Dashboard Layout</b></u></span>''',
+        object = f'''<span style="font-size:{globals.FONTSIZES['header']}"><u><b>Dashboard Layout</b></u></span>''',
         styles = {'color':'white', 'max-height':'min-content'}
     )
     dashboard_checkbox = pn.widgets.CheckBoxGroup(inline = False, align = 'center')
@@ -704,7 +353,7 @@ class ParamTabs(Viewer):
     
     # Checkbox for general plot settings
     genrl_plot_settings_header = pn.pane.HTML(
-        object = f'''<span style="font-size:{FONTSIZES['header']}"><u><b>General Plot Settings</b></u></span>''',
+        object = f'''<span style="font-size:{globals.FONTSIZES['header']}"><u><b>General Plot Settings</b></u></span>''',
         styles = {'color':'white', 'max-height':'min-content'}
     )
     genrl_plot_checkbox = pn.widgets.CheckBoxGroup(options = {'Show Time Markers': 'marker', 
@@ -717,7 +366,7 @@ class ParamTabs(Viewer):
     
     # Checkbox for photometry settings (currently no options to add)
     phot_settings_header = pn.pane.HTML(
-        object = f'''<span style="font-size:{FONTSIZES['header']}"><u><b>Photometry Plot Settings</b></u></span>''',
+        object = f'''<span style="font-size:{globals.FONTSIZES['header']}"><u><b>Photometry Plot Settings</b></u></span>''',
         styles = {'color':'white', 'max-height':'min-content'}
     )
     phot_checkbox = pn.widgets.CheckBoxGroup(inline = False, align = 'center')
@@ -727,7 +376,7 @@ class ParamTabs(Viewer):
     
     # Checkbox for astrometry settings
     ast_settings_header = pn.pane.HTML(
-        object = f'''<span style="font-size:{FONTSIZES['header']}"><u><b>Astrometry Plot Settings</b></u></span>''',
+        object = f'''<span style="font-size:{globals.FONTSIZES['header']}"><u><b>Astrometry Plot Settings</b></u></span>''',
         styles = {'color':'white', 'max-height':'min-content'}
     )
     ast_checkbox = pn.widgets.CheckBoxGroup(inline = False, align = 'center')
@@ -747,13 +396,13 @@ class ParamTabs(Viewer):
 
     # Layout for entire tab section
     tabs_layout = pn.Tabs(styles = {'border':'white solid 0.08rem',
-                                    'background':CLRS['secondary'],
+                                    'background':globals.CLRS['secondary'],
                                     'margin':'0.2rem', 'margin-bottom':'0.1rem'})
     
     #######################
     # Methods
     #######################
-    def _check_genrl_errors(self, default_val, min_val, max_val, step_val):
+    def _check_genrl_errors(self, param, default_val, min_val, max_val, step_val):
         error_html = ''''''
         if np.any(np.isnan([default_val, min_val, max_val, step_val])):
             error_html += '''<li>Range inputs must be a number.</li>'''     
@@ -768,8 +417,8 @@ class ParamTabs(Viewer):
         if error_html != '''''':
             error_param = f'''<span style="color:#ff9999";>{param}</span>'''
             self.error_msg.object = f'''
-                <span style="color:red; font-size:{FONTSIZES['error_title']};"">Errors in {error_param} Slider:</span>
-                <ul style="color:white; font-size:{FONTSIZES['error_txt']};">{error_html}</ul>
+                <span style="color:red; font-size:{globals.FONTSIZES['error_title']};"">Errors in {error_param} Slider:</span>
+                <ul style="color:white; font-size:{globals.FONTSIZES['error_txt']};">{error_html}</ul>
             '''
             
             # Force the function that called this function to exit
@@ -777,7 +426,7 @@ class ParamTabs(Viewer):
     
     def set_errored_layout(self):
         self.tabs_layout.objects = [self.error_msg, self.range_table]
-        self.tabs_layout.stylesheets = [ERRORED_TABS_STYLE]
+        self.tabs_layout.stylesheets = [globals.ERRORED_TABS_STYLE]
         
     @pn.depends('paramztn_info.selected_params', watch = True)
     # Note: dependency is set on 'selected_params' instead of 'selected_paramztn' to prevent errors when selected_paramztn = None
@@ -828,7 +477,7 @@ class ParamTabs(Viewer):
         
         # Update range data frame
         idx_list = ['Time'] + self.paramztn_info.selected_params
-        range_df = pd.DataFrame.from_dict(DEFAULT_RANGES, orient = 'index').loc[idx_list]
+        range_df = pd.DataFrame.from_dict(globals.DEFAULT_RANGES, orient = 'index').loc[idx_list]
         range_df.columns = ['Units', 'Default', 'Min', 'Max', 'Step']
         range_df.index.name = 'Parameter'
         
@@ -853,7 +502,7 @@ class ParamTabs(Viewer):
 
         # Check for errors
         try:
-            self._check_genrl_errors(default_val, min_val, max_val, step_val)           
+            self._check_genrl_errors('Time', default_val, min_val, max_val, step_val)           
         except SystemExit:
             return
     
@@ -890,7 +539,7 @@ class ParamTabs(Viewer):
 
             # Check for errors
             try:
-                self._check_genrl_errors(default_val, min_val, max_val, step_val)             
+                self._check_genrl_errors(param, default_val, min_val, max_val, step_val)             
             except SystemExit:
                 return
         
@@ -916,7 +565,7 @@ class ParamTabs(Viewer):
                                                    format = '1[.]000',
                                                    margin = (10, 12, 10, 12),
                                                    design = Material,
-                                                   stylesheets = [SLIDER_STYLE])
+                                                   stylesheets = [globals.SLIDER_STYLE])
 
             # Make watcher for slider
             # Note: throttled is enabled for binary lens because computation time is significantly longer
@@ -932,7 +581,7 @@ class ParamTabs(Viewer):
         
         # Change slider tab back to non-errored format
         self.tabs_layout.objects = [self.sliders_layout, self.range_table, self.settings_layout]
-        self.tabs_layout.stylesheets = [BASE_TABS_STYLE]
+        self.tabs_layout.stylesheets = [globals.BASE_TABS_STYLE]
 
         # Initialize param values
         self.update_param_values()
@@ -987,7 +636,7 @@ class ParamSummary(Viewer):
                                 sizing_mode = 'stretch_both',
                                 styles = {'border':'white solid 0.08rem', 
                                           'overflow':'scroll',
-                                          'background':CLRS['secondary'],
+                                          'background':globals.CLRS['secondary'],
                                           'margin':'0.2rem', 'margin-bottom':'0.1rem'})   
     
     #######################
@@ -999,23 +648,21 @@ class ParamSummary(Viewer):
             # Model parameter summary
             mod_html = ''''''
             for param in self.paramztn_info.selected_params:
-                if DEFAULT_RANGES[param][0] == None:
+                if globals.DEFAULT_RANGES[param][0] == None:
                     label = param
                 else:
-                    label = f'{param} [{DEFAULT_RANGES[param][0]}]'
+                    label = f'{param} [{globals.DEFAULT_RANGES[param][0]}]'
                 
                 if param in self.paramztn_info.selected_phot_params:
                     val = self.param_info.param_values[param][0]
                 else:
                     val = self.param_info.param_values[param]
                 
-                mod_html += f'''<span><b>{label}</b>:  {round(val, 5)}</span><br>'''
+                mod_html += f'''<span style="font-size:{globals.FONTSIZES['summary_txt']}"><b>{label}</b>:  {round(val, 5)}</span>'''
             mod_html = f'''
-                <div style="display:flex; flex-direction:column; align-items:center;">
-                    <span style="font-size:{FONTSIZES['header']}"><u><b>Model Parameters</b></u></span>
-                    <div style="font-size:{FONTSIZES['summary_txt']}">
-                        {mod_html}
-                    </div>
+                <div style="display:flex; flex-direction:column; align-items:start;">
+                    <span style="font-size:{globals.FONTSIZES['header']}"><u><b>Model Parameters</b></u></span>
+                    {mod_html}
                 </div>           
             '''
             self.mod_pane.object = mod_html
@@ -1028,10 +675,10 @@ class ParamSummary(Viewer):
             for param in all_params_dict.keys():
                 if param not in self.paramztn_info.selected_params + ['raL', 'decL', 'use_gp_phot', 'root_tol']:
                     clr = 'white'
-                    if DEFAULT_RANGES[param][0] == None:
+                    if globals.DEFAULT_RANGES[param][0] == None:
                         label = param
                     else:
-                        label = f'{param} [{DEFAULT_RANGES[param][0]}]'
+                        label = f'{param} [{globals.DEFAULT_RANGES[param][0]}]'
                     
                     # Check if value type is a dictionary, np.ndarray, or float/integer
                     if isinstance(all_params_dict[param], dict):
@@ -1048,14 +695,12 @@ class ParamSummary(Viewer):
                     else:
                         val = round(all_params_dict[param], 5)
                     
-                    derived_html += f'''<span><b style="color:{clr};">{label}</b>:  {val}</span><br>'''
+                    derived_html += f'''<span style="font-size:{globals.FONTSIZES['summary_txt']}"><b style="color:{clr}">{label}</b>:  {val}</span>'''
                     
             derived_html = f'''
-                <div style="display:flex;flex-direction:column;justify-content:center;">
-                    <span style="font-size:{FONTSIZES['header']}"><u><b>Derived Parameters</b></u></span>
-                    <div style="font-size:{FONTSIZES['summary_txt']}">
-                        {derived_html}
-                    </div>
+                <div style="display:flex;flex-direction:column;align-items:start;">
+                    <span style="font-size:{globals.FONTSIZES['header']}"><u><b>Derived Parameters</b></u></span>
+                    {derived_html}
                 </div>           
             '''     
             self.derived_pane.object = derived_html
@@ -1108,7 +753,7 @@ class Trace:
                            y = y_data[time_idx], 
                            name = '', mode = 'lines', zorder = zorder,
                            legendgroup = self.legend_group, showlegend = show_legend,
-                           legendgrouptitle = dict(text = self.legend_group, font_size = FONTSIZES['legendgroup']),
+                           legendgrouptitle = dict(text = self.legend_group, font_size = globals.FONTSIZES['legendgroup']),
                            line = dict(color = trace_clr, width = self.time_width),
                            text = text, hoverinfo = self.hover_info, hovertemplate = self.hover_format)
         return trace
@@ -1162,16 +807,16 @@ class PlotRow(Viewer):
         'phot': Trace(legend_group = 'Photometry',
                       primary_clr = 'red', secondary_clr = 'rgb(255, 77, 77)', 
                       time_width = 2, full_width  = 1.5, marker_size = 10, 
-                      hover_format = PHOT_FORMAT),
+                      hover_format = globals.PHOT_FORMAT),
         
         'gp_predict_mean': Trace(legend_group = 'GP Predictive Mean',
                                  primary_clr = 'red', secondary_clr = 'rgba(255, 77, 77, 0.8)',
                                  time_width = 1.4, full_width  = 0.9, marker_size = 10, 
-                                 hover_format = PHOT_FORMAT, full_dash_style = 'solid'),
+                                 hover_format = globals.PHOT_FORMAT, full_dash_style = 'solid'),
         'gp_prior_mean': Trace(legend_group = 'GP Prior Mean',
                                primary_clr = 'orange', secondary_clr = 'rgba(255, 193, 77, 0.8)', 
                                time_width = 1.4, full_width  = 0.9, marker_size = 10, 
-                               hover_format = PHOT_FORMAT, full_dash_style = 'solid'),
+                               hover_format = globals.PHOT_FORMAT, full_dash_style = 'solid'),
         
         'gp_samps': Trace(legend_group = 'GP Prior Samples',
                           time_width = 0.3,
@@ -1179,35 +824,34 @@ class PlotRow(Viewer):
         
     }
     
-    
     ast_traces = {
         'lens': Trace(legend_group = 'Lens(es)', 
                       primary_clr = 'black', secondary_clr = 'rgb(26, 26, 26)',
                       time_width = 2, full_width  = 1.5, marker_size = 10, 
-                      hover_format = AST_FORMAT),
+                      hover_format = globals.AST_FORMAT),
         
         'unres_len': Trace(legend_group = 'Unresolved, Lensed Source(s)',
                            primary_clr = 'red', secondary_clr = 'rgb(255, 77, 77)', 
                            time_width = 2, full_width  = 1.5, marker_size = 10, 
-                           hover_format = AST_FORMAT),
+                           hover_format = globals.AST_FORMAT),
         'unres_unlen': Trace(legend_group = 'Unresolved, Unlensed Source(s)',
                              primary_clr = 'orange', secondary_clr = 'rgb(255, 193, 77)', 
                              time_width = 1.5, full_width  = 1, marker_size = 8, 
-                             hover_format = AST_FORMAT),
+                             hover_format = globals.AST_FORMAT),
         
         'res_ps_len': Trace(legend_group = 'Resolved, Lensed Source Images',
                              primary_clr = 'yellow', secondary_clr = 'rgb(255, 255, 77)', 
                              time_width = 1.2, marker_size = 6, 
-                             hover_format = AST_FORMAT),
+                             hover_format = globals.AST_FORMAT),
         
         'res_bs_unlen_pri': Trace(legend_group = 'Resolved, Unlensed Primary Source',
                                   primary_clr = 'rgb(0, 134, 149)', secondary_clr = 'rgb(77, 237, 255)', 
                                   time_width = 2, full_width  = 1.5, marker_size = 10, 
-                                  hover_format = AST_FORMAT),
+                                  hover_format = globals.AST_FORMAT),
         'res_bs_unlen_sec': Trace(legend_group = 'Resolved, Unlensed Secondary Source',
                                   primary_clr = 'rgb(148, 52, 110)', secondary_clr = 'rgb(209, 123, 174)', 
                                   time_width = 2, full_width  = 1.5, marker_size = 10, 
-                                  hover_format = AST_FORMAT),
+                                  hover_format = globals.AST_FORMAT),
         
         'res_bs_len_pri': Trace(legend_group = 'Resolved, Lensed Primary Source',
                                 primary_clr = 'rgb(128, 242, 255)',
@@ -1238,19 +882,19 @@ class PlotRow(Viewer):
         }
         
         # Plot row layout
-        self.phot_pane = pn.pane.Plotly(config = PHOT_CONFIGS,
+        self.phot_pane = pn.pane.Plotly(config = globals.PHOT_CONFIGS,
                                         sizing_mode = 'stretch_both',
                                         visible = False,
                                         styles = {'border':'white solid 0.08rem', 
-                                                  'background':CLRS['secondary'],
+                                                  'background':globals.CLRS['secondary'],
                                                   'margin':'0.2rem',
                                                   'padding':'0.5rem', 'padding-right':'0'})
 
-        self.ast_pane = pn.pane.Plotly(config = AST_CONFIGS,
+        self.ast_pane = pn.pane.Plotly(config = globals.AST_CONFIGS,
                                        sizing_mode = 'stretch_both',
                                        visible = False,
                                        styles = {'border':'white solid 0.08rem', 
-                                                 'background':CLRS['secondary'],
+                                                 'background':globals.CLRS['secondary'],
                                                  'margin':'0.2rem',
                                                  'padding':'0.5rem', 'padding-right':'0'})
         
@@ -1272,8 +916,8 @@ class PlotRow(Viewer):
         
     def set_initial_figs(self):
         # This is an initial empty figure for stylistic purposes (not really necessary)
-        init_fig = go.Figure(layout = dict(plot_bgcolor = CLRS['secondary'],
-                                           paper_bgcolor = CLRS['secondary']))
+        init_fig = go.Figure(layout = dict(plot_bgcolor = globals.CLRS['secondary'],
+                                           paper_bgcolor = globals.CLRS['secondary']))
         init_fig.update_xaxes(showgrid = False, zeroline = False, showticklabels = False)
         init_fig.update_yaxes(showgrid = False, zeroline = False, showticklabels = False)
         
@@ -1371,14 +1015,16 @@ class PlotRow(Viewer):
             # Note: self.gp.compute should have already been called
             self.phot_extra['gp_samps'] = self.gp.sample(size = self.param_info.param_sliders['Num_samps'].value)
             
-        if plot == True:
+        if (plot == True) and (self.param_info.param_sliders['Num_samps'].value > 0):
             # color cycle for samples
-            clr_cycle = cycle(CLRS['gp_cycle'])
+            clr_cycle = cycle(globals.CLRS['gp_cycle'])
 
             # Lists used to only show the legend for the first sample and put it in front for visual purposes
-            zorder_list = [-100] + np.repeat(-101, self.param_info.param_sliders['Num_samps'].value - 1).tolist()
-            show_legend_list = [True] + np.repeat(False, self.param_info.param_sliders['Num_samps'].value - 1).tolist()
+            zorder_list = np.repeat(-101, self.param_info.param_sliders['Num_samps'].value).tolist()
+            show_legend_list = np.repeat(False, self.param_info.param_sliders['Num_samps'].value).tolist()
             
+            zorder_list[0], show_legend_list[0] = -100, True
+
             for i, samp in enumerate(self.phot_extra['gp_samps']):
                 fig.add_trace(
                     self.phot_traces['gp_samps'].time_trace(
@@ -1418,22 +1064,22 @@ class PlotRow(Viewer):
             
             phot_fig = go.Figure()
             phot_fig.update_xaxes(title = 'Time [MJD]', 
-                                  title_font_size = FONTSIZES['plot_axes_labels'],
+                                  title_font_size = globals.FONTSIZES['plot_axes_labels'],
                                   ticks = 'outside', tickformat = '000',
                                   color = 'white',
-                                  gridcolor = CLRS['gridline'], zerolinecolor = CLRS['zeroline'])
+                                  gridcolor = globals.CLRS['gridline'], zeroline = False)
 
             phot_fig.update_yaxes(title = 'Magnitude [mag]', 
-                                  title_font_size = FONTSIZES['plot_axes_labels'],
+                                  title_font_size = globals.FONTSIZES['plot_axes_labels'],
                                   ticks = 'outside', autorange = 'reversed',
                                   color = 'white',
-                                  gridcolor = CLRS['gridline'], zerolinecolor = CLRS['zeroline'])
+                                  gridcolor = globals.CLRS['gridline'], zeroline = False)
 
-            phot_fig.update_layout(plot_bgcolor = CLRS['secondary'], 
-                                   paper_bgcolor = CLRS['secondary'],
-                                   font_size = FONTSIZES['plot_axes_ticks'],
+            phot_fig.update_layout(plot_bgcolor = globals.CLRS['secondary'], 
+                                   paper_bgcolor = globals.CLRS['secondary'],
+                                   font_size = globals.FONTSIZES['plot_axes_ticks'],
                                    title = dict(text = 'Photometry', y = 0.99,
-                                                font = dict(color = 'white', size = FONTSIZES['plot_title'])),
+                                                font = dict(color = 'white', size = globals.FONTSIZES['plot_title'])),
                                    legend = dict(font_color = 'white',
                                                 grouptitlefont_color = 'white'),
                                    margin = dict(l = 0, r = 0, t = 30, b = 0))
@@ -1756,22 +1402,22 @@ class PlotRow(Viewer):
             
             ast_fig = go.Figure()
             ast_fig.update_xaxes(title = '&#916;&#120572;</span><sup>*</sup> [arcsec]', 
-                                 title_font_size = FONTSIZES['plot_axes_labels'],
+                                 title_font_size = globals.FONTSIZES['plot_axes_labels'],
                                  ticks = 'outside', tickformat = '000', 
                                  color = 'white', 
-                                 gridcolor = CLRS['gridline'], zerolinecolor = CLRS['zeroline']) 
+                                 gridcolor = globals.CLRS['gridline'], zeroline = False) 
 
             ast_fig.update_yaxes(title = '&#916;&#120575; [arcsec]', 
-                                 title_font_size = FONTSIZES['plot_axes_labels'],
+                                 title_font_size = globals.FONTSIZES['plot_axes_labels'],
                                  ticks = 'outside', 
                                  color = 'white', 
-                                 gridcolor = CLRS['gridline'], zerolinecolor = CLRS['zeroline'])
+                                 gridcolor = globals.CLRS['gridline'], zeroline = False)
 
-            ast_fig.update_layout(plot_bgcolor = CLRS['secondary'], 
-                                  paper_bgcolor = CLRS['secondary'],
-                                  font_size = FONTSIZES['plot_axes_ticks'],
+            ast_fig.update_layout(plot_bgcolor = globals.CLRS['secondary'], 
+                                  paper_bgcolor = globals.CLRS['secondary'],
+                                  font_size = globals.FONTSIZES['plot_axes_ticks'],
                                   title = dict(text = 'Astrometry', y = 0.99,
-                                                font = dict(color = 'white', size = FONTSIZES['plot_title'])),
+                                                font = dict(color = 'white', size = globals.FONTSIZES['plot_title'])),
                                   legend = dict(font_color = 'white',
                                                 grouptitlefont_color = 'white'),
                                   margin = dict(l = 0, r = 0, t = 30, b = 0))
@@ -1916,7 +1562,7 @@ class Dashboard(Viewer):
             self._update_layout()
             
         else:
-            self.param_tabs.set_error_layout()
+            self.param_tabs.set_errored_layout()
             self.param_row.styles = {'height':'100%'}
             
             self.plot_row.plot_layout.visible = False
@@ -1935,7 +1581,7 @@ class Dashboard(Viewer):
 ################################################
 class BAGLECalc(Viewer):
     page_title = pn.widgets.StaticText(value = 'BAGLE Calculator', 
-                                  styles = {'font-size':FONTSIZES['page_title'], 
+                                  styles = {'font-size':globals.FONTSIZES['page_title'], 
                                             'font-weight':'600', 
                                             'margin-bottom':'-0.4rem'})
     
