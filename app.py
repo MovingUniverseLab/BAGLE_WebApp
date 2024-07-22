@@ -519,10 +519,8 @@ class ParamTabs(Viewer):
 
         if 'BL' in mod_types['srclens']:
             self.param_sliders['Num_pts'].param.update(value = 1500)
-            self.param_sliders['Num_pts'].disabled = True
         else:
             self.param_sliders['Num_pts'].param.update(value = 3000)
-            self.param_sliders['Num_pts'].disabled = False
 
         if 'GP' in mod_types['gp']:
             self.param_sliders['Num_samps'].visible = True
