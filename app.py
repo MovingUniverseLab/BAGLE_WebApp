@@ -272,6 +272,9 @@ class ParamTabs(Viewer):
         # Currently not needed, but this could separate Time slider lock and checkbox lock (see update functions in PlotRow class)
     lock_trigger, trigger_param_change = param.Boolean(), param.Boolean()
     
+    # Current model slider object being changed by user
+    current_mod_slider = None
+
     # Dictionary for parameter values
     param_values = param.Dict(default = {})
     
@@ -287,14 +290,14 @@ class ParamTabs(Viewer):
                                                    format = '1[.]000',
                                                    margin = (10, 12, -2, 12),
                                                    design = Material,
-                                                   stylesheets = [globals.SLIDER_STYLE])
+                                                   stylesheets = [globals.BASE_SLIDER_STYLE])
 
     param_sliders['Num_pts'] = pn.widgets.IntSlider(name = 'Number of Points (Trace Resolution)',
                                                     start = 1000, value = 3500, end = 20000, step = 100,
                                                     format = '1[.]000',
                                                     margin = (10, 12, -2, 12),
                                                     design = Material,
-                                                    stylesheets = [globals.SLIDER_STYLE])
+                                                    stylesheets = [globals.BASE_SLIDER_STYLE])
 
     # Slider used for GP prior samples
     param_sliders['Num_samps'] = pn.widgets.IntSlider(name = 'Number of GP Samples',
@@ -303,10 +306,10 @@ class ParamTabs(Viewer):
                                                       format = '1[.]000',
                                                       margin = (10, 0, -2, 12),
                                                       design = Material,
-                                                      stylesheets = [globals.SLIDER_STYLE])
+                                                      stylesheets = [globals.BASE_SLIDER_STYLE])
     
     # Layout for model-dependent sliders
-    mod_sliders = pn.FlexBox(flex_wrap = 'wrap')
+    mod_sliders = pn.FlexBox(flex_wrap = 'wrap', styles = {'margin-bottom':'2rem'})
     
     # Layout for sliders that are present in all models
     const_sliders = pn.FlexBox(param_sliders['Time'], 
@@ -565,7 +568,7 @@ class ParamTabs(Viewer):
                                                    format = '1[.]000',
                                                    margin = (10, 12, 10, 12),
                                                    design = Material,
-                                                   stylesheets = [globals.SLIDER_STYLE])
+                                                   stylesheets = [globals.BASE_SLIDER_STYLE])
 
             # Make watcher for slider
             # Note: throttled is enabled for binary lens because computation time is significantly longer
@@ -590,26 +593,28 @@ class ParamTabs(Viewer):
         self.error_msg.object = None
 
     def update_param_values(self, *event):
-        # Note: the '*event' argument is only used to set the dependency on the sliders.
-        
-        if self.lock_trigger == False:  
-            # Update model parameter values
-            temp_dict = {}
-            for param in self.paramztn_info.selected_params:
-                # phot_name parameters should be inputed as an ndarray/list
-                if param in self.paramztn_info.selected_phot_params:
-                    temp_dict[param] = np.array([self.param_sliders[param].value])
-                else:
-                    temp_dict[param] = self.param_sliders[param].value
+        # Note: the '*event' argument is used to set dependency on sliders
 
-            self.param_values = temp_dict
+        if event != ():
+            self.current_mod_slider = event[0].obj
 
-            # Note: a trigger is used because if self.param_values doesn't change, updates don't occur
-                # An example of this is changing slider 'Min/Max/Step', but not the slider value (i.e. 'Default')
-                # I think this could also be resolved by using 'onlychanged = False' in the lower-level '.param.watch',
-                    # instead of using '@pn.depends,' but that may make readability more confusing.
-                    # See: https://param.holoviz.org/user_guide/Dependencies_and_Watchers.html#watchers
-            self.trigger_param_change = not self.trigger_param_change
+        # Update model parameter values
+        temp_dict = {}
+        for param in self.paramztn_info.selected_params:
+            # phot_name parameters should be inputed as an ndarray/list
+            if param in self.paramztn_info.selected_phot_params:
+                temp_dict[param] = np.array([self.param_sliders[param].value])
+            else:
+                temp_dict[param] = self.param_sliders[param].value
+
+        self.param_values = temp_dict
+
+        # Note: a trigger is used because if self.param_values doesn't change, updates don't occur
+            # An example of this is changing slider 'Min/Max/Step', but not the slider value (i.e. 'Default')
+            # I think this could also be resolved by using 'onlychanged = False' in the lower-level '.param.watch',
+                # instead of using '@pn.depends,' but that may make readability more confusing.
+                # See: https://param.holoviz.org/user_guide/Dependencies_and_Watchers.html#watchers
+        self.trigger_param_change = not self.trigger_param_change
 
     def __panel__(self):
         return self.tabs_layout
@@ -800,8 +805,10 @@ class PlotRow(Viewer):
         # The choice of data for 'extras' is mainly for performance and stylistic purposes
     phot_extra, ast_extra = param.Dict(), param.Dict()
     
-    time = None
-    mod, gp = None, None
+    # 'time' is a numpy array of times
+    # 'mod' is an instance of a BAGLE model
+    # 'gp' is a numpy array of GP prior samples
+    time, mod, gp = None, None, None
     
     phot_traces = {
         'phot': Trace(legend_group = 'Photometry',
@@ -935,20 +942,32 @@ class PlotRow(Viewer):
                                     stop = self.param_info.param_sliders['Time'].end, 
                                     num = self.param_info.param_sliders['Num_pts'].value)
 
-            self.mod = getattr(model, self.paramztn_info.selected_paramztn)(**self.param_info.param_values) 
-            
-            # Update photometry if visible
-            self._update_phot_main_traces()
-            self._update_phot_extra_traces()
-            self.update_phot_plot()
-            
-            # Update astrometry if visible
-            self._update_ast_main_traces()
-            self._update_ast_extra_traces()
-            self.update_ast_plot()
-            
+            self.mod = getattr(model, self.paramztn_info.selected_paramztn)(**self.param_info.param_values)
+
+            event_slider = self.param_info.current_mod_slider
+            try:
+                # Update photometry if visible
+                self._update_phot_main_traces()
+                self._update_phot_extra_traces()
+                self.update_phot_plot()
+                
+                # Update astrometry if visible
+                self._update_ast_main_traces()
+                self._update_ast_extra_traces()
+                self.update_ast_plot()
+
+                if event_slider not in [(), None]:
+                    for param in self.param_info.param_sliders.keys():
+                        self.param_info.param_sliders[param].disabled = False
+                    event_slider.stylesheets = [globals.BASE_SLIDER_STYLE]
+
+            except:
+                for param in self.param_info.param_sliders.keys():
+                    self.param_info.param_sliders[param].disabled = True
+                event_slider.param.update(disabled = False, stylesheets = [globals.ERRORED_SLIDER_STYLE])
+
     ########################
-    # Photometry Functions
+    # Photometry Methods
     ########################                      
     @pn.depends('phot_pane.visible', watch = True)
     def _update_phot_main_traces(self):
@@ -1155,7 +1174,7 @@ class PlotRow(Viewer):
             self.phot_pane.object = phot_fig
             
     #################################
-    # Astrometry Functions
+    # Astrometry Methods
     #################################
     @pn.depends('ast_pane.visible', watch = True)
     def _update_ast_main_traces(self):

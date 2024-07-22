@@ -272,7 +272,7 @@ SELECTED_BTN_STYLE = '''
 '''%(CLRS['main'], CLRS['selected'], CLRS['selected'], FONTSIZES['btn'])
 
 # CSS stylesheet for sliders
-SLIDER_STYLE = '''
+BASE_SLIDER_STYLE = '''
     :host {
         --design-primary-color: %s;
         --design-secondary-color: %s;
@@ -282,6 +282,18 @@ SLIDER_STYLE = '''
         font-size: %s;
     }
 '''%(CLRS['light'], CLRS['main'], FONTSIZES['slider'])
+
+ERRORED_SLIDER_STYLE = '''
+    :host {
+        --design-primary-color: red;
+        --design-secondary-color: %s;
+    }
+    
+    .bk-slider-title {
+        color: red;
+        font-size: %s;
+    }
+'''%(CLRS['main'], FONTSIZES['slider'])
 
 # CSS stylesheet for tabulator
 TABLTR_STYLE = '''
