@@ -273,7 +273,7 @@ class ParamTabs(Viewer):
     lock_trigger, trigger_param_change = param.Boolean(), param.Boolean()
     
     # Current model slider object being changed by user
-    current_mod_slider = None
+    current_param_change = 'Time'
 
     # Dictionary for parameter values
     param_values = param.Dict(default = {})
@@ -405,6 +405,11 @@ class ParamTabs(Viewer):
     #######################
     # Methods
     #######################
+    def __init__(self, **params):
+        super().__init__(**params)
+        # set on-edit function for range table
+        self.range_table.on_edit(self.update_param_change)
+
     def _check_genrl_errors(self, param, default_val, min_val, max_val, step_val):
         error_html = ''''''
         if np.any(np.isnan([default_val, min_val, max_val, step_val])):
@@ -427,9 +432,25 @@ class ParamTabs(Viewer):
             # Force the function that called this function to exit
             sys.exit()
     
-    def set_errored_layout(self):
-        self.tabs_layout.objects = [self.error_msg, self.range_table]
+    def set_base_layout(self):
+        self.tabs_layout.objects = [self.sliders_layout, self.range_table, self.settings_layout]
+        self.settings_layout.visible = True
+        self.tabs_layout.stylesheets = [globals.BASE_TABS_STYLE]
+
+    def set_range_errored_layout(self):
+        self.tabs_layout.objects = [self.error_msg, self.range_table, self.settings_layout]
+        self.tabs_layout.active = 0
+        self.settings_layout.visible = False
         self.tabs_layout.stylesheets = [globals.ERRORED_TABS_STYLE]
+
+    def set_slider_errored_layout(self):
+        self.settings_layout.visible = False
+        self.tabs_layout.stylesheets = [globals.ERRORED_TABS_STYLE]
+
+    def update_param_change(self, *event):
+        self.current_param_change = self.range_table.value.index[event[0].row]
+        self.tabs_layout.active = 0
+        self.update_sliders()
         
     @pn.depends('paramztn_info.selected_params', watch = True)
     # Note: dependency is set on 'selected_params' instead of 'selected_paramztn' to prevent errors when selected_paramztn = None
@@ -491,8 +512,9 @@ class ParamTabs(Viewer):
             # For some reason setting 'active = 1' (or some other tab) first seems to fix this
         self.tabs_layout.active = 1
         self.tabs_layout.active = 0
-        
-    @pn.depends('range_table.value', watch = True)
+
+    @pn.depends('paramztn_info.selected_params', watch = True)
+    # Note: This function needs to be defined after 'update_table_and_checks' for proper precedence
     def update_sliders(self):
         df = self.range_table.value
         mod_types = self.paramztn_info.mod_info.type_dict
@@ -579,10 +601,6 @@ class ParamTabs(Viewer):
         
         # Get relevant sliders and update slider_box
         self.mod_sliders.objects = [self.param_sliders[key] for key in self.paramztn_info.selected_params]
-        
-        # Change slider tab back to non-errored format
-        self.tabs_layout.objects = [self.sliders_layout, self.range_table, self.settings_layout]
-        self.tabs_layout.stylesheets = [globals.BASE_TABS_STYLE]
 
         # Initialize param values
         self.update_param_values()
@@ -594,7 +612,9 @@ class ParamTabs(Viewer):
         # Note: the '*event' argument is used to set dependency on sliders
 
         if event != ():
-            self.current_mod_slider = event[0].obj
+            # Regex is needed to get just the parameter name and not the unit
+            self.current_param_change = re.match('[^\W\\[]*', event[0].obj.name).group()
+            print(self.current_param_change)
 
         # Update model parameter values
         temp_dict = {}
@@ -754,7 +774,7 @@ class Trace:
         trace_clr = trace_clr or self.primary_clr
         trace = go.Scatter(x = x_data[time_idx], 
                            y = y_data[time_idx], 
-                           name = '', mode = 'lines', zorder = zorder,
+                           name = '', mode = 'lines', connectgaps = False, zorder = zorder,
                            legendgroup = self.legend_group, showlegend = show_legend,
                            legendgrouptitle = dict(text = self.legend_group, font_size = globals.FONTSIZES['legendgroup']),
                            line = dict(color = trace_clr, width = self.time_width),
@@ -769,7 +789,7 @@ class Trace:
         trace_clr = trace_clr or self.secondary_clr
         trace =  go.Scatter(x = x_data, 
                             y = y_data,
-                            name = '', mode = 'lines', zorder = -10,
+                            name = '', mode = 'lines', connectgaps = False, zorder = -10,
                             legendgroup = self.legend_group, showlegend = False, 
                             line = dict(color = trace_clr, width = self.full_width, dash = self.full_dash_style),
                             text = text, hoverinfo = self.hover_info, hovertemplate = self.hover_format)
@@ -939,30 +959,46 @@ class PlotRow(Viewer):
             self.time = np.linspace(start = self.param_info.param_sliders['Time'].start, 
                                     stop = self.param_info.param_sliders['Time'].end, 
                                     num = self.param_info.param_sliders['Num_pts'].value)
+            
+            event_slider = self.param_info.param_sliders[self.param_info.current_param_change]
 
-            self.mod = getattr(model, self.paramztn_info.selected_paramztn)(**self.param_info.param_values)
-
-            event_slider = self.param_info.current_mod_slider
+            # Check for bad parameter combination (e.g. dL > dS)
+                # Note: this assumes that instantiating a model will catch all bad combinations
+                # I'm not sure if this is the case, but it works for most combinations that I've tested
             try:
-                # Update photometry if visible
-                self._update_phot_main_traces()
-                self._update_phot_extra_traces()
-                self.update_phot_plot()
-                
-                # Update astrometry if visible
-                self._update_ast_main_traces()
-                self._update_ast_extra_traces()
-                self.update_ast_plot()
+                np.seterr(all = 'raise')
+                self.mod = getattr(model, self.paramztn_info.selected_paramztn)(**self.param_info.param_values)
 
-                if event_slider not in [(), None]:
+                # Check if 'Num_pts' slider is disabled
+                    # Note: this assumes that the 'Num_pts' slider will never cause an exception
+                if self.param_info.param_sliders['Num_pts'].disabled == True:
                     for param in self.param_info.param_sliders.keys():
                         self.param_info.param_sliders[param].disabled = False
+
                     event_slider.stylesheets = [globals.BASE_SLIDER_STYLE]
+                    self.param_info.set_base_layout()
+
+                np.seterr(all = 'warn')
 
             except:
                 for param in self.param_info.param_sliders.keys():
                     self.param_info.param_sliders[param].disabled = True
-                event_slider.param.update(disabled = False, stylesheets = [globals.ERRORED_SLIDER_STYLE])
+                event_slider.param.update(disabled = False,  stylesheets = [globals.ERRORED_SLIDER_STYLE])
+                
+                self.set_initial_figs()
+                self.param_info.set_slider_errored_layout()
+                np.seterr(all = 'warn')
+                return
+            
+            # Update photometry if visible
+            self._update_phot_main_traces()
+            self._update_phot_extra_traces()
+            self.update_phot_plot()
+            
+            # Update astrometry if visible
+            self._update_ast_main_traces()
+            self._update_ast_extra_traces()
+            self.update_ast_plot()
 
     ########################
     # Photometry Methods
@@ -1546,7 +1582,7 @@ class Dashboard(Viewer):
         # Add dependency of checkbox and layout
         # Note: this is needed because 'param_tabs' is a class that uses a required input class
         self.param_tabs.dashboard_checkbox.param.watch(self._update_layout, 'value')
-        self.param_tabs.error_msg.param.watch(self._errored_layout, 'object')
+        self.param_tabs.error_msg.param.watch(self._range_errored_layout, 'object')
         
     @pn.depends('paramztn_info.selected_paramztn', watch = True)
     def _hide_show(self):
@@ -1558,6 +1594,9 @@ class Dashboard(Viewer):
             self.dashboard_layout.visible = True
             
     def _update_layout(self, *event):
+        # Set param_tabs to its unerrored layout
+        self.param_tabs.set_base_layout()
+
         unchecked_components = set(self.db_components.keys()) - set(self.param_tabs.dashboard_checkbox.value)
 
         for key in self.param_tabs.dashboard_checkbox.value:
@@ -1574,20 +1613,15 @@ class Dashboard(Viewer):
             self.param_row.styles = {'height':'100%'}
             self.plot_row.plot_layout.visible = False
         
-    def _errored_layout(self, *event):
+    def _range_errored_layout(self, *event):
         if self.param_tabs.error_msg.object == None:
             self._update_layout()
             
         else:
-            self.param_tabs.set_errored_layout()
+            self.param_tabs.set_range_errored_layout()
             self.param_row.styles = {'height':'100%'}
-            
             self.plot_row.plot_layout.visible = False
-            self.plot_row.phot_pane.visible = False
-            self.plot_row.ast_pane.visible = False
-            
             self.param_summary.summary_layout.visible = False
-            
                           
     def __panel__(self):
         return self.dashboard_layout

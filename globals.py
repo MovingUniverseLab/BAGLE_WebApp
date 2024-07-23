@@ -210,7 +210,7 @@ FONTSIZES = {
     'table_title': '0.75rem',
     'table_txt': '0.75rem',
     'error_title': '1.5rem',
-    'error_txt': '1rem',
+    'error_txt': '1.4rem',
     'tooltip': '0.7rem',
     'summary_txt': '0.95rem',
     'plot_axes_ticks': 10,
@@ -326,14 +326,11 @@ BASE_TABS_STYLE = '''
 
 ERRORED_TABS_STYLE = '''
     .bk-tab {
-        font-weight: bold;
-        font-size: 1rem;
         color:red;
     }
     
     .bk-tab.bk-active {
         font-weight: bold;
-        font-size: 1rem;
         color: red !important;
         background-color: %s !important;
         border-color: red !important;
