@@ -903,25 +903,37 @@ class PlotRow(Viewer):
         }
             
         # Plot row layout
-        self.phot_pane = pn.pane.Plotly(config = self.get_plot_configs('photometry'),
-                                        sizing_mode = 'stretch_height',
-                                        visible = False,
-                                        styles = constants.BASE_PLOT_STYLE)
+        self.phot_pane = pn.pane.Plotly(
+            name = 'phot',
+            config = self.get_plot_configs('photometry'),
+            sizing_mode = 'stretch_height',
+            visible = False,
+            styles = constants.BASE_PLOT_STYLE
+        )
 
-        self.radec_pane = pn.pane.Plotly(config = self.get_plot_configs('ra_dec_astrometry'),
-                                         sizing_mode = 'stretch_height',
-                                         visible = False,
-                                         styles = constants.BASE_PLOT_STYLE)
+        self.radec_pane = pn.pane.Plotly(
+            name = 'ast_radec',
+            config = self.get_plot_configs('ra_dec_astrometry'),
+            sizing_mode = 'stretch_height',
+            visible = False,
+            styles = constants.BASE_PLOT_STYLE
+        )
         
-        self.ra_pane = pn.pane.Plotly(config = self.get_plot_configs('ra_astrometry'),
-                                      sizing_mode = 'stretch_height',
-                                      visible = False,
-                                      styles = constants.BASE_PLOT_STYLE)
+        self.ra_pane = pn.pane.Plotly(
+            name = 'ast_ra',
+            config = self.get_plot_configs('ra_astrometry'),
+            sizing_mode = 'stretch_height',
+            visible = False,
+            styles = constants.BASE_PLOT_STYLE
+        )
         
-        self.dec_pane = pn.pane.Plotly(config = self.get_plot_configs('dec_astrometry'),
-                                       sizing_mode = 'stretch_height',
-                                       visible = False,
-                                       styles = constants.BASE_PLOT_STYLE)
+        self.dec_pane = pn.pane.Plotly(
+            name = 'ast_dec',
+            config = self.get_plot_configs('dec_astrometry'),
+            sizing_mode = 'stretch_height',
+            visible = False,
+            styles = constants.BASE_PLOT_STYLE
+        )
         
         self.plot_panes = {
             'phot': self.phot_pane, 
@@ -1348,7 +1360,7 @@ class Dashboard(Viewer):
         }
 
         # a variable to store dashboard plot component if there is only a single plot
-        self.current_single_plot = None
+        self.single_plot = param.Boolean(default = False)
 
         self.dashboard_layout = pn.FlexBox(self.plot_row,
                                            self.param_row,
@@ -1398,11 +1410,14 @@ class Dashboard(Viewer):
 
             # Expand plot if there is only a single plot
             if len(checked_plots) == 1:
-                self.current_single_plot = self.db_components[checked_plots[0]]
-                self.current_single_plot.styles = constants.SINGLE_PLOT_STYLE
+                self.single_plot = True
+                self.db_components[checked_plots[0]].styles = constants.SINGLE_PLOT_STYLE
 
-            elif self.current_single_plot != None:
-                self.current_single_plot.styles = constants.BASE_PLOT_STYLE
+            # Reset plot-widths if not single plot
+            elif self.single_plot == True:
+                for plot in self.plot_row.plot_panes.values():
+                    plot.styles = constants.BASE_PLOT_STYLE
+                self.single_plot = False
 
         # Hide plot row and expand param row if no plots are checked
         else:
