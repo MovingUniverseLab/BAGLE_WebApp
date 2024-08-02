@@ -2,16 +2,14 @@
 # Packages
 ################################################
 import re
-import textwrap
 from functools import partial
-from itertools import cycle
 import sys
 
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 
-from bagle import model
+from BAGLE_Microlensing.src.bagle import model
 import celerite
 
 import panel as pn
