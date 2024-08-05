@@ -196,39 +196,39 @@ class Ast_Unres:
             'ast_dec': (time, dec, None)
         }
 
-    def plot_time(self, fig, plot_key, time_idx):
+    def plot_time(self, fig, plot_name, time_idx):
         fig.add_trace(
             go.Scatter(
-                x = self.plot_data[plot_key][0][time_idx],
-                y = self.plot_data[plot_key][1][time_idx],
+                x = self.plot_data[plot_name][0][time_idx],
+                y = self.plot_data[plot_name][1][time_idx],
                 name = '', zorder = self.zorder,
                 legendgroup = self.group_name, showlegend = True,
                 legendgrouptitle = dict(text = self.group_name, 
                                         font_size = constants.FONTSIZES['legendgroup']),
                 line = dict(color = self.pri_clr, width = self.time_width),
-                hovertemplate = ALL_TEMPLATES[plot_key],
-                text = self.plot_data[plot_key][2]
+                hovertemplate = ALL_TEMPLATES[plot_name],
+                text = self.plot_data[plot_name][2]
             )
         )
 
-    def plot_full(self, fig, plot_key):
+    def plot_full(self, fig, plot_name):
         fig.add_trace(
             go.Scatter(
-                x = self.plot_data[plot_key][0],
-                y = self.plot_data[plot_key][1],
+                x = self.plot_data[plot_name][0],
+                y = self.plot_data[plot_name][1],
                 name = '', zorder = -100,
                 legendgroup = self.group_name, showlegend = False,
                 line = dict(color = self.sec_clr, width = self.full_width, dash = 'dash'),
-                hovertemplate = ALL_TEMPLATES[plot_key],
-                text = self.plot_data[plot_key][2]
+                hovertemplate = ALL_TEMPLATES[plot_name],
+                text = self.plot_data[plot_name][2]
             )
         )
 
-    def plot_marker(self, fig, plot_key, marker_idx):
+    def plot_marker(self, fig, plot_name, marker_idx):
         fig.add_trace(
             go.Scatter(
-                x = [self.plot_data[plot_key][0][marker_idx]],
-                y = [self.plot_data[plot_key][1][marker_idx]],
+                x = [self.plot_data[plot_name][0][marker_idx]],
+                y = [self.plot_data[plot_name][1][marker_idx]],
                 name = '', zorder = self.zorder,
                 legendgroup = self.group_name, showlegend = False,
                 mode = 'markers', marker = dict(color = self.pri_clr, size = self.marker_size),
@@ -236,9 +236,9 @@ class Ast_Unres:
             )
         )
 
-    def get_xy_lists(self, plot_key):
-        x_list = list(self.plot_data[plot_key][0])
-        y_list = list(self.plot_data[plot_key][1])
+    def get_xy_lists(self, plot_name):
+        x_list = list(self.plot_data[plot_name][0])
+        y_list = list(self.plot_data[plot_name][1])
         return x_list, y_list        
 
 
@@ -282,15 +282,15 @@ class Ast_PS_ResLensed:
             'ast_dec': (time_list, dec_list)
         }
 
-    def plot_time(self, fig, plot_key, time_idx):
+    def plot_time(self, fig, plot_name, time_idx):
         show_legend_list = np.repeat(False, self.num_imgs).tolist()
         show_legend_list[0] = True
 
         for i in range(self.num_imgs):
             fig.add_trace(
                 go.Scattergl(
-                    x = self.plot_data[plot_key][0][i][time_idx],
-                    y = self.plot_data[plot_key][1][i][time_idx],
+                    x = self.plot_data[plot_name][0][i][time_idx],
+                    y = self.plot_data[plot_name][1][i][time_idx],
                     name = '',
                     legendgroup = self.group_name, showlegend = show_legend_list[i],
                     legendgrouptitle = dict(text = self.group_name, 
@@ -300,13 +300,13 @@ class Ast_PS_ResLensed:
                 )
             )
 
-    def plot_marker(self, fig, plot_key, marker_idx):
+    def plot_marker(self, fig, plot_name, marker_idx):
         # zorder = 1000 forces markers to be in the front, which is needed to nearly Scattergl       
         for i in range(self.num_imgs):
             fig.add_trace(
                 go.Scatter(
-                    x = [self.plot_data[plot_key][0][i][marker_idx]],
-                    y = [self.plot_data[plot_key][1][i][marker_idx]],
+                    x = [self.plot_data[plot_name][0][i][marker_idx]],
+                    y = [self.plot_data[plot_name][1][i][marker_idx]],
                     name = '', zorder = 1000,
                     legendgroup = self.group_name, showlegend = False,
                     mode = 'markers', marker = dict(color = self.pri_clr, size = self.marker_size),
@@ -314,12 +314,12 @@ class Ast_PS_ResLensed:
                 )
             )
 
-    def get_xy_lists(self, plot_key):
+    def get_xy_lists(self, plot_name):
         x_list, y_list = [], []
         # Note: this may unecessarily combine a bunch of repeated time arrays
         for i in range(self.num_imgs):
-            x_list += list(self.plot_data[plot_key][0][i])
-            y_list += list(self.plot_data[plot_key][1][i])
+            x_list += list(self.plot_data[plot_name][0][i])
+            y_list += list(self.plot_data[plot_name][1][i])
         return x_list, y_list
     
 
@@ -428,45 +428,45 @@ class Ast_Lens:
             'ast_dec': (time_list, dec_list, None)
         }
 
-    def plot_time(self, fig, plot_key, time_idx):
+    def plot_time(self, fig, plot_name, time_idx):
         show_legend_list = np.repeat(False, self.num_lens).tolist()
         show_legend_list[0] = True
 
         for i in range(self.num_lens):
             fig.add_trace(
                 go.Scatter(
-                    x = self.plot_data[plot_key][0][i][time_idx],
-                    y = self.plot_data[plot_key][1][i][time_idx],
+                    x = self.plot_data[plot_name][0][i][time_idx],
+                    y = self.plot_data[plot_name][1][i][time_idx],
                     name = '', zorder = self.zorder,
                     legendgroup = self.group_name, showlegend = show_legend_list[i],
                     legendgrouptitle = dict(text = self.group_name, 
                                             font_size = constants.FONTSIZES['legendgroup']),
                     line = dict(color = self.pri_clr, width = self.time_width),
-                    hovertemplate = ALL_TEMPLATES[plot_key],
-                    text = self.plot_data[plot_key][2]
+                    hovertemplate = ALL_TEMPLATES[plot_name],
+                    text = self.plot_data[plot_name][2]
                 )
             )
 
-    def plot_full(self, fig, plot_key):
+    def plot_full(self, fig, plot_name):
         for i in range(self.num_lens):
             fig.add_trace(
                 go.Scatter(
-                    x = self.plot_data[plot_key][0][i],
-                    y = self.plot_data[plot_key][1][i],
+                    x = self.plot_data[plot_name][0][i],
+                    y = self.plot_data[plot_name][1][i],
                     name = '', zorder = -100,
                     legendgroup = self.group_name, showlegend = False,
                     line = dict(color = self.sec_clr, width = self.full_width, dash = 'dash'),
-                    hovertemplate = ALL_TEMPLATES[plot_key],
-                    text = self.plot_data[plot_key][2]
+                    hovertemplate = ALL_TEMPLATES[plot_name],
+                    text = self.plot_data[plot_name][2]
                 )
             )
 
-    def plot_marker(self, fig, plot_key, marker_idx):
+    def plot_marker(self, fig, plot_name, marker_idx):
         for i in range(self.num_lens):
             fig.add_trace(
                 go.Scatter(
-                    x = [self.plot_data[plot_key][0][i][marker_idx]],
-                    y = [self.plot_data[plot_key][1][i][marker_idx]],
+                    x = [self.plot_data[plot_name][0][i][marker_idx]],
+                    y = [self.plot_data[plot_name][1][i][marker_idx]],
                     name = '', zorder = self.zorder,
                     legendgroup = self.group_name, showlegend = False,
                     mode = 'markers', marker = dict(color = self.pri_clr, size = self.marker_size),
@@ -474,10 +474,10 @@ class Ast_Lens:
                 )
             )
 
-    def get_xy_lists(self, plot_key):
+    def get_xy_lists(self, plot_name):
         x_list, y_list = [], []
         # Note: this may unecessarily combine a bunch of repeated time arrays
         for i in range(self.num_lens):
-            x_list += list(self.plot_data[plot_key][0][i])
-            y_list += list(self.plot_data[plot_key][1][i])
+            x_list += list(self.plot_data[plot_name][0][i])
+            y_list += list(self.plot_data[plot_name][1][i])
         return x_list, y_list

@@ -41,12 +41,6 @@ class ModSelect(Viewer):
     #######################
     # Panel Components
     #######################
-    # Model header
-    mod_header = pn.widgets.StaticText(value = 'Model:',
-                                       styles = {'font-size': constants.FONTSIZES['header'], 
-                                                 'font-weight':'550', 
-                                                 'margin-right':'0.9rem'})
-
     # Model selection boxes
     srclens_type = pn.widgets.Select(name = '', 
                                      options = {'Point-Source Point-Lens': 'PSPL',
@@ -96,10 +90,7 @@ class ModSelect(Viewer):
             objs = np.insert(objs, i, plus) 
             
         
-        mod_layout = pn.Row(objects = [self.mod_header] + list(objs),
-                            styles = {'padding-left':'10%',
-                                      'padding-right':'10%',
-                                      'margin-bottom':'0.5rem'})
+        mod_layout = pn.Row(objects = list(objs), styles = {'margin-bottom':'0.05rem'})
         return mod_layout
     
     @pn.depends('srclens_type.value', 'data_type.value', 
@@ -137,25 +128,18 @@ class ParamztnSelect(Viewer):
     # Flex box to display buttons
     paramztn_box = pn.FlexBox(align = 'center')
 
-    # Parameterization Header
-    paramztn_header = pn.widgets.StaticText(value = f'Parameterization:', align = 'start',
-                                            styles = {'font-size':constants.FONTSIZES['header'],
-                                                      'font-weight':'550', 
-                                                      'margin-right':'1rem'})
     # Error message in case of no parameterizations
     paramztn_error = pn.widgets.StaticText(
         value = 'ERROR: There are currently no supported parameterizations for this model. Please try a different selection.',
         styles = {'font-size':constants.FONTSIZES['paramztn_error'], 
                   'text-align':'center',
-                  'font-weight':'550', 
+                  'font-weight':'550',
                   'margin-bottom':'-0.2rem'},
         stylesheets = ['''.bk-clearfix {color: red;}''']
     )
     
     # Layout of parameterization selection row
-    paramztn_layout = pn.Row(styles = {'padding-right':'5%', 
-                                       'padding-left':'5%',
-                                       'margin-bottom':'-0.3rem'})
+    paramztn_layout = pn.Row()
     
     #######################
     # Methods
@@ -215,7 +199,7 @@ class ParamztnSelect(Viewer):
                                                               mod_types = mod_types))
             # Get relevant buttons and update paramztn_box
             self.paramztn_box.objects = [self.paramztn_btns[key] for key in mod_paramztns]
-            self.paramztn_layout.objects = [self.paramztn_header, self.paramztn_box]
+            self.paramztn_layout.objects = [self.paramztn_box]
             
     def get_param_names(self, paramztn, mod_types, return_phot_names = False):
         # Get paramaterization class
@@ -260,6 +244,15 @@ class ParamztnSelect(Viewer):
 
 
 ################################################
+# Dashboard - Indicators
+################################################
+class Indicators:
+    loading_indicator = pn.pane.GIF('./custom_indicators/loading_indicator/loading_indicator.gif', 
+                                    name = 'loading_indicator', width = 150)
+    error_indicator = pn.pane.GIF('./custom_indicators/error_indicator/error_indicator.gif',
+                                  name = 'error_indicator', width = 180)
+
+################################################
 # Dashboard - Parameter Tabs
 ################################################
 class SettingsTabs(Viewer):
@@ -268,9 +261,15 @@ class SettingsTabs(Viewer):
     
     # Parameters to prevent unwanted updates or trigger updates
         # It might be better to make lock_trigger into a dictionary to store locks for different components
-        # Currently not needed, but this could separate Time slider lock and checkbox lock (see update functions in PlotRow class)
+        # Currently not needed, but this could separate Time slider lock and checkbox locks
     lock_trigger, trigger_param_change = param.Boolean(), param.Boolean()
     
+    # Parameter to trigger error layouts
+    error_trigger = param.Boolean()
+
+    # Parameter to indicate whether sliders are throttled (e.g. when we have a BL model)
+    throttled = param.Boolean()
+
     # Current parameter being changes. The default 'Time' is just a placeholder
     current_param_change = 'Time'
 
@@ -287,14 +286,14 @@ class SettingsTabs(Viewer):
     # Time and number of point sliders (for all models)
     param_sliders['Time'] = pn.widgets.FloatSlider(name = 'Time [MJD]',
                                                    format = '1[.]000',
-                                                   margin = (10, 12, -2, 12),
+                                                   margin = (10, 12, -2, 18),
                                                    design = Material,
                                                    stylesheets = [constants.BASE_SLIDER_STYLE])
 
-    param_sliders['Num_pts'] = pn.widgets.IntSlider(name = 'Number of Line Points (Trace Resolution)',
+    param_sliders['Num_pts'] = pn.widgets.IntSlider(name = 'Trace Resolution (Throttled)',
                                                     start = 1000, value = 3500, end = 20000, step = 100,
                                                     format = '1[.]000',
-                                                    margin = (10, 12, -2, 12),
+                                                    margin = (10, 12, -2, 18),
                                                     design = Material,
                                                     stylesheets = [constants.BASE_SLIDER_STYLE])
 
@@ -303,7 +302,7 @@ class SettingsTabs(Viewer):
                                                       start = 0, value = 3, end = 10, step = 1,
                                                       visible = False,
                                                       format = '1[.]000',
-                                                      margin = (10, 0, -2, 12),
+                                                      margin = (10, 0, -2, 18),
                                                       design = Material,
                                                       stylesheets = [constants.BASE_SLIDER_STYLE])
     
@@ -315,13 +314,30 @@ class SettingsTabs(Viewer):
     const_sliders = pn.FlexBox(param_sliders['Time'], 
                                param_sliders['Num_pts'],
                                flex_wrap = 'wrap')
+    
+    slider_note = pn.pane.HTML(
+        object = f'''
+            <span style="font-size:{constants.FONTSIZES['tabs_txt']};font-family:{constants.HTML_FONTFAMILY}">
+                <b>Note:</b> Trace resolution slider is always throttled.
+                <br>
+                <b>Note:</b> Parameter sliders are throttled for binary-lens models, and when the number of points exceed 10000.
+            </span>
+        ''',
+        styles = {'color':'rgb(204, 204, 204)', 'margin-bottom': '0', 'text-align':'start', 'width':'90%'}
+    )
+
     # Layout for all sliders
-    sliders_layout = pn.Column(const_sliders,
-                               param_sliders['Num_samps'],
-                               pn.layout.Divider(),
-                               mod_sliders,
-                               name = 'Parameter Sliders',
-                               styles = {'overflow':'scroll', 'height':'100%'})
+    sliders_layout = pn.Column(
+        slider_note,
+        pn.layout.Divider(),
+        const_sliders,
+        param_sliders['Num_samps'],
+        pn.layout.Divider(margin = (10, 0, 0, 0)),
+        mod_sliders,
+        name = 'Parameter Sliders',
+        styles = {'overflow':'scroll', 
+                    'height':'100%', 
+                    'border-top':'white solid 0.08rem'})
         
     # Table for slider range settings
     range_table = pn.widgets.Tabulator(name = 'Slider Settings',
@@ -350,14 +366,22 @@ class SettingsTabs(Viewer):
                        'Parameter Summary':'summary'}
     }
     dashboard_settings_header = pn.pane.HTML(
-        object = f'''<span style="font-size:{constants.FONTSIZES['header']}"><u><b>Dashboard Layout</b></u></span>''',
-        styles = {'color':'white', 'margin-bottom': '0'}
+        object = f'''
+            <span style="font-size:{constants.FONTSIZES['header']};font-family:{constants.HTML_FONTFAMILY}">
+                <u><b>Dashboard Layout</b></u>
+            </span>
+        ''',
+        styles = {'color':'white', 'margin-top': '0', 'margin-bottom': '0'}
     )
     dashboard_note = pn.pane.HTML(
-        object = f'''<span style="font-size:{constants.FONTSIZES['table_txt']}"><b>Note:</b> For 3+ plots, scroll to the right.</span>''',
+        object = f'''
+            <span style="font-size:{constants.FONTSIZES['checkbox_txt']};font-family:{constants.HTML_FONTFAMILY}">
+                <b>Note:</b> For 3+ plots, scroll to the right.
+            </span>
+        ''',
         styles = {'color':'rgb(204, 204, 204)', 'margin-top': '0', 'margin-bottom': '0'}
     )
-    dashboard_checkbox = pn.widgets.CheckBoxGroup(inline = False, align = 'start')
+    dashboard_checkbox = pn.widgets.CheckBoxGroup(inline = False, align = 'center')
     dashboard_settings = pn.Column(dashboard_settings_header, 
                                    dashboard_note,
                                    dashboard_checkbox, 
@@ -365,12 +389,16 @@ class SettingsTabs(Viewer):
     
     # Checkbox for general plot settings
     genrl_plot_settings_header = pn.pane.HTML(
-        object = f'''<span style="font-size:{constants.FONTSIZES['header']}"><u><b>General Plot Settings</b></u></span>''',
-        styles = {'color':'white', 'margin-bottom': '0'}
+        object = f'''
+            <span style="font-size:{constants.FONTSIZES['header']};font-family:{constants.HTML_FONTFAMILY}">
+                <u><b>General Plot Settings</b></u>
+            </span>
+        ''',
+        styles = {'color':'white', 'margin-top': '0', 'margin-bottom': '0'}
     )
     genrl_plot_checkbox = pn.widgets.CheckBoxGroup(options = {'Show Time Markers': 'marker', 
                                                               'Show Full Traces': 'full_trace'},
-                                                   inline = False, align = 'start')
+                                                   inline = False, align = 'center')
     genrl_plot_settings = pn.Column(genrl_plot_settings_header, 
                                     genrl_plot_checkbox, 
                                     styles = {'margin':'0.5rem'})
@@ -378,10 +406,14 @@ class SettingsTabs(Viewer):
     
     # Checkbox for photometry settings (currently no options to add)
     phot_settings_header = pn.pane.HTML(
-        object = f'''<span style="font-size:{constants.FONTSIZES['header']}"><u><b>Photometry Plot Settings</b></u></span>''',
+        object = f'''
+            <span style="font-size:{constants.FONTSIZES['header']};font-family:{constants.HTML_FONTFAMILY}">
+                <u><b>Photometry Plot Settings</b></u>
+            </span>
+        ''',
         styles = {'color':'white', 'margin-bottom': '0'}
     )
-    phot_checkbox = pn.widgets.CheckBoxGroup(inline = False, align = 'start')
+    phot_checkbox = pn.widgets.CheckBoxGroup(inline = False, align = 'center')
     phot_settings = pn.Column(phot_settings_header, 
                               phot_checkbox, 
                               visible = False,
@@ -389,41 +421,53 @@ class SettingsTabs(Viewer):
     
     # Checkbox for astrometry settings
     ast_settings_header = pn.pane.HTML(
-        object = f'''<span style="font-size:{constants.FONTSIZES['header']}"><u><b>Astrometry Plot Settings</b></u></span>''',
+        object = f'''
+            <span style="font-size:{constants.FONTSIZES['header']};font-family:{constants.HTML_FONTFAMILY}">
+                <u><b>Astrometry Plot Settings</b></u>
+            </span>
+        ''',
         styles = {'color':'white', 'margin-bottom': '0'}
     )
     ast_note = pn.pane.HTML(
-        object = f'''<span style="font-size:{constants.FONTSIZES['table_txt']}"><b>Note:</b> Lens may not be visible without Time Marker checked.</span>''',
+        object = f'''
+            <span style="font-size:{constants.FONTSIZES['checkbox_txt']};font-family:{constants.HTML_FONTFAMILY}">
+                <b>Note:</b> Lens may not be visible without Time Marker.
+            </span>
+        ''',
         styles = {'color':'rgb(204, 204, 204)', 'margin-top': '0', 'margin-bottom': '0'}
     )
-    ast_checkbox = pn.widgets.CheckBoxGroup(inline = False, align = 'start', styles={'fontsize':'150px'})
-
-    # Slider for number of markers used for source images
-    param_sliders['Num_marks'] = pn.widgets.IntSlider(name = 'Maximum Number of Points Displayed',
-                                                      start = 100, value = 300, end = 5000, step = 10,
-                                                      visible = False,
-                                                      format = '1[.]000',
-                                                      align = 'start',
-                                                      design = Material,
-                                                      styles = {'width':'50%', 'margin-top':'-0.5rem', 'margin-left':'2.5rem'},
-                                                      stylesheets = [constants.MARKER_SLIDER_STYLE])
+    ast_checkbox = pn.widgets.CheckBoxGroup(inline = False, align = 'center')
     ast_settings = pn.Column(ast_settings_header, 
                              ast_note,
                              ast_checkbox, 
-                             param_sliders['Num_marks'],
                              visible = False,
                              styles = {'margin':'0.5rem'})
     
-    # Layout for settings tab
-    settings_layout = pn.FlexBox(dashboard_settings, 
-                                 genrl_plot_settings, 
-                                 phot_settings,
-                                 ast_settings,
-                                 name = 'Other Settings',
-                                 justify_content = 'center',
-                                 styles = {'overflow':'scroll'})
-        
+    performance_note = pn.pane.HTML(
+        object = f'''
+            <span style="font-size:{constants.FONTSIZES['tabs_txt']};font-family:{constants.HTML_FONTFAMILY}">
+                <b>Note:</b> For best performance, it's recommended to either reduce the number of traces or the number of figures while using sliders.
+            </span>
+        ''',
+        styles = {'color':'rgb(204, 204, 204)', 'margin-bottom': '0', 'text-align':'center', 'width':'75%'},
+        align = 'center'
+    )
 
+    # Layout for settings tab
+    all_settings = pn.FlexBox(
+        dashboard_settings, 
+        genrl_plot_settings, 
+        phot_settings,
+        ast_settings,
+        justify_content = 'center',
+    )
+        
+    settings_layout = pn.Column(
+        performance_note,
+        all_settings,
+        name = 'Other Settings',
+        styles = {'overflow':'scroll'}
+    )
     # Layout for entire tab section
     tabs_layout = pn.Tabs(styles = {'border':'white solid 0.08rem',
                                     'background':constants.CLRS['secondary']})
@@ -435,6 +479,54 @@ class SettingsTabs(Viewer):
         super().__init__(**params)
         # set on-edit function for range table
         self.range_table.on_edit(self.update_param_change)
+
+        self.param_sliders['Num_pts'].param.watch(self.num_pts_slider_watchers, 'value_throttled')
+
+    def set_base_layout(self):
+        self.tabs_layout.objects = [self.sliders_layout, self.range_table, self.settings_layout]
+
+        for object in self.tabs_layout.objects:
+            object.visible = True
+
+        self.tabs_layout.stylesheets = [constants.BASE_TABS_STYLE]
+
+    def set_slider_errored_layout(self, undo):
+        event_slider = self.param_sliders[self.current_param_change]
+
+        if undo == False:
+            for param in self.param_sliders.keys():
+                self.param_sliders[param].disabled = True
+            
+            event_slider.param.update(disabled = False,  
+                                      stylesheets = [constants.ERRORED_SLIDER_STYLE])
+
+            self.settings_layout.visible = False
+            self.tabs_layout.stylesheets = [constants.ERRORED_TABS_STYLE]
+
+            self.error_trigger = not self.error_trigger
+
+        else:
+            for param in self.param_sliders.keys():
+                self.param_sliders[param].disabled = False
+            
+            event_slider.stylesheets = [constants.BASE_SLIDER_STYLE]
+            self.set_base_layout()
+
+    @pn.depends('error_msg.object', watch = True)
+    def set_range_errored_layout(self):
+        # It's strange, but we need to clear tabs objects before inputting the actual objects.
+        # Otherwise the range_table will be a bit buggy.
+        self.tabs_layout.objects = []
+        if self.error_msg.object == None:
+            self.set_base_layout()
+        else:
+            self.tabs_layout.objects = [self.error_msg, self.range_table, self.settings_layout]
+
+            self.tabs_layout.active = 0
+            self.settings_layout.visible = False
+            self.tabs_layout.stylesheets = [constants.ERRORED_TABS_STYLE]
+
+            self.error_trigger = not self.error_trigger
 
     def _check_genrl_errors(self, param, default_val, min_val, max_val, step_val):
         error_html = ''''''
@@ -449,10 +541,14 @@ class SettingsTabs(Viewer):
 
         # Make error message and exit if error exists
         if error_html != '''''':
-            error_param = f'''<span style="color:#ff9999";>{param}</span>'''
+            error_param = f'''<span style="color:rgb(179, 0, 89);font-weight:bold">{param}</span>'''
             self.error_msg.object = f'''
-                <span style="color:red; font-size:{constants.FONTSIZES['error_title']};"">Errors in {error_param} Slider:</span>
-                <ul style="color:white; font-size:{constants.FONTSIZES['error_txt']};">{error_html}</ul>
+                <span style="color:red; font-size:{constants.FONTSIZES['error_title']};font-family:{constants.HTML_FONTFAMILY}">
+                    Errors in {error_param} Slider:
+                </span>
+                <ul style="color:white; font-size:{constants.FONTSIZES['error_txt']};font-family:{constants.HTML_FONTFAMILY}">
+                    {error_html}
+                </ul>
             '''
             
             # Force the function that called this function to exit
@@ -484,7 +580,6 @@ class SettingsTabs(Viewer):
                                'Show Position of Lens(es)': 'lens'}
                                                
             self.ast_checkbox.param.update(options = ast_options, value = [])
-            self.param_sliders['Num_marks'].value = 300
             self.ast_settings.visible = True
         
         # Data type is photometry-only
@@ -588,19 +683,20 @@ class SettingsTabs(Viewer):
                                                                    end = max_val, 
                                                                    step = step_val,
                                                                    format = '1[.]000',
-                                                                   margin = (10, 12, 10, 12),
+                                                                   margin = (10, 12, 10, 18),
                                                                    design = Material,
                                                                    stylesheets = [constants.BASE_SLIDER_STYLE])
 
             # Make watcher for slider
             # Note: throttled is enabled for binary lens because computation time is significantly longer
             if 'BL' in selected_paramztn:
-                self.slider_watchers[param] = self.param_sliders[param].param.watch(self.update_param_values, 
-                                                                                    'value_throttled')
+                self.slider_watchers[param] = self.param_sliders[param].param.watch(self.update_param_values, 'value_throttled')
+                self.throttled = True
+
             else:
-                self.slider_watchers[param] = self.param_sliders[param].param.watch(self.update_param_values, 
-                                                                                    'value')
-        
+                self.slider_watchers[param] = self.param_sliders[param].param.watch(self.update_param_values, 'value')
+                self.throttled = False
+
         # Get relevant sliders and update slider_box
         self.mod_sliders.objects = [self.param_sliders[key] for key in self.paramztn_info.selected_params]
 
@@ -634,51 +730,35 @@ class SettingsTabs(Viewer):
                 # instead of using '@pn.depends,' but that may make readability more confusing.
                 # See: https://param.holoviz.org/user_guide/Dependencies_and_Watchers.html#watchers
         self.trigger_param_change = not self.trigger_param_change
-
-    def set_base_layout(self):
-        self.tabs_layout.objects = [self.sliders_layout, self.range_table, self.settings_layout]
-        for object in self.tabs_layout.objects:
-            object.visible = True
-
-        self.tabs_layout.stylesheets = [constants.BASE_TABS_STYLE]
-
-    def set_slider_errored_layout(self, undo = False):
-        event_slider = self.param_sliders[self.current_param_change]
-
-        if undo == False:
-            for param in self.param_sliders.keys():
-                self.param_sliders[param].disabled = True
-            
-            event_slider.param.update(disabled = False,  
-                                      stylesheets = [constants.ERRORED_SLIDER_STYLE])
-
-            self.settings_layout.visible = False
-            self.tabs_layout.stylesheets = [constants.ERRORED_TABS_STYLE]
-
-        else:
-            for param in self.param_sliders.keys():
-                self.param_sliders[param].disabled = False
-            
-            event_slider.stylesheets = [constants.BASE_SLIDER_STYLE]
-            self.set_base_layout()
-
-    def set_range_errored_layout(self):
-        self.tabs_layout.objects = [self.error_msg, self.range_table, self.settings_layout]
-        self.tabs_layout.active = 0
-        self.settings_layout.visible = False
-        self.tabs_layout.stylesheets = [constants.ERRORED_TABS_STYLE]
+    
+    def num_pts_slider_watchers(self, *event):
+        # Lock needed to prevent overlap with changing data table
+        # BL check needed to prevent undoing throttle for binary-lens models
+        if (self.lock_trigger == False) and ('BL' not in self.paramztn_info.selected_paramztn):
+            if self.param_sliders['Num_pts'].value >= 10000:
+                for param in self.paramztn_info.selected_params:
+                    # Unwatch before updating to prevent multiple repeated watchers (memory leaks)
+                    self.param_sliders[param].param.unwatch(self.slider_watchers[param]) 
+                    self.slider_watchers[param] = self.param_sliders[param].param.watch(self.update_param_values, 'value_throttled')
+                    self.throttled = True
+            else:
+                for param in self.paramztn_info.selected_params:
+                    # Unwatch before updating to prevent multiple repeated watchers (memory leaks)
+                    self.param_sliders[param].param.unwatch(self.slider_watchers[param]) 
+                    self.slider_watchers[param] = self.param_sliders[param].param.watch(self.update_param_values, 'value')
+                    self.throttled = False
 
     def __panel__(self):
         return self.tabs_layout
-    
+
 
 ################################################
 # Dashboard - Parameter Summary
 ################################################ 
-class ParamSummary(Viewer):
+class ParamSummary(Viewer, Indicators):
     paramztn_info = param.ClassSelector(class_ = ParamztnSelect)
     settings_info = param.ClassSelector(class_ = SettingsTabs)
-    
+
     #######################
     # Panel Components
     #######################
@@ -689,22 +769,22 @@ class ParamSummary(Viewer):
     # Layout for summary pane
     summary_content = pn.FlexBox(mod_pane, 
                                  derived_pane, 
-                                 styles = {'min-width':'fit-content'})   
+                                 styles = {'width':'max-content', 'height':'100%'})   
     
-    summary_layout = pn.Row(pn.HSpacer(),
-                            summary_content,
-                            pn.HSpacer(),
-                            styles = {'border':'white solid 0.08rem', 
-                                      'background':constants.CLRS['secondary'],
-                                      'height':'100%',
-                                      'overflow':'scroll',})
+    summary_layout = pn.FlexBox(summary_content,
+                                justify_content = 'center',
+                                align_content = 'center',
+                                styles = {'border':'white solid 0.08rem', 
+                                        'background':constants.CLRS['secondary'],
+                                        'height':'100%',
+                                        'overflow':'scroll'})
     
     #######################
     # Methods
     #######################
-    @pn.depends('summary_layout.visible', 'settings_info.trigger_param_change', watch = True)
+    @pn.depends('settings_info.dashboard_checkbox.value', 'settings_info.trigger_param_change', watch = True)
     def update_summary(self):
-        if (self.settings_info.lock_trigger == False) and (self.summary_layout.visible == True):
+        if (self.settings_info.lock_trigger == False) and ('summary' in self.settings_info.dashboard_checkbox.value):
             # Model parameter summary
             mod_html = ''''''
             for param in self.paramztn_info.selected_params:
@@ -718,9 +798,12 @@ class ParamSummary(Viewer):
                 else:
                     val = self.settings_info.param_values[param]
                 
-                mod_html += f'''<span style="font-size:{constants.FONTSIZES['summary_txt']}"><b>{label}</b>:  {round(val, 5)}</span>'''
+                mod_html += f'''
+                    <span style="font-size:{constants.FONTSIZES['summary_txt']};">
+                        <b>{label}</b>:  {round(val, 5)}
+                    </span>'''
             mod_html = f'''
-                <div style="display:flex; flex-direction:column; align-items:start;">
+                <div style="display:flex; flex-direction:column; align-items:start;font-family:{constants.HTML_FONTFAMILY}">
                     <span style="font-size:{constants.FONTSIZES['header']}"><u><b>Model Parameters</b></u></span>
                     {mod_html}
                 </div>           
@@ -755,16 +838,27 @@ class ParamSummary(Viewer):
                     else:
                         val = round(all_params_dict[param], 5)
                     
-                    derived_html += f'''<span style="font-size:{constants.FONTSIZES['summary_txt']}"><b style="color:{clr}">{label}</b>:  {val}</span>'''
+                    derived_html += f'''
+                        <span style="font-size:{constants.FONTSIZES['summary_txt']}">
+                            <b style="color:{clr}">{label}</b>:  {val}
+                        </span>
+                    '''
                     
             derived_html = f'''
-                <div style="display:flex;flex-direction:column;align-items:start;">
+                <div style="display:flex;flex-direction:column;align-items:start;font-family:{constants.HTML_FONTFAMILY}">
                     <span style="font-size:{constants.FONTSIZES['header']}"><u><b>Derived Parameters</b></u></span>
                     {derived_html}
                 </div>           
             '''     
             self.derived_pane.object = derived_html
-         
+
+            if 'indicator' in self.summary_layout.objects[0].name:
+                self.summary_layout.objects = [self.summary_content]
+
+    @pn.depends('settings_info.error_trigger', watch = True)
+    def errored_layout(self):
+        self.summary_layout.objects = [self.error_indicator]
+
     def __panel__(self):
         return self.summary_layout
     
@@ -772,7 +866,7 @@ class ParamSummary(Viewer):
 ################################################
 # Dashboard - Plots
 ################################################
-class PlotRow(Viewer):
+class PlotRow(Viewer, Indicators):
     paramztn_info = param.ClassSelector(class_ = ParamztnSelect)
     settings_info = param.ClassSelector(class_ = SettingsTabs)
 
@@ -781,7 +875,7 @@ class PlotRow(Viewer):
     # 'gp' is a celerite GP object with gp.compute performed
     time, mod, gp = None, None, None
 
-    # complex image position and amplification arrays for binary lens models (these are numpy arrays)
+    # Complex image position and amplification arrays for binary lens models (these are numpy arrays)
     bl_image_arr, bl_amp_arr = None, None
 
     # Lists for the set of photometry plots and set of astrometry plots selected in plot checkbox
@@ -888,7 +982,7 @@ class PlotRow(Viewer):
                    'ps_res_len',
                    'bs_res_unlen_pri', 'bs_res_unlen_sec', 'bs_res_len_pri', 'bs_res_len_sec',
                    'lens'}
-    
+
     ########################
     # General Methods
     ######################## 
@@ -901,69 +995,26 @@ class PlotRow(Viewer):
             'bs_res_len_sec': self._update_bs_res_len,
             'lens': self._update_lens
         }
-            
+        
+        # Labels for plot
+        self.plot_names = constants.PHOT_PLOT_NAMES + constants.AST_PLOT_NAMES
+
+        # Set up initial figure formats, plotly panes, and plot flexboxes
+        self.init_figs, self.plotly_panes, self.plot_boxes = self.make_plot_components(self.plot_names)
+
         # Plot row layout
-        self.phot_pane = pn.pane.Plotly(
-            name = 'phot',
-            config = self.get_plot_configs('photometry'),
-            sizing_mode = 'stretch_height',
-            visible = False,
-            styles = constants.BASE_PLOT_STYLE
+        self.plot_layout = pn.FlexBox(
+            objects = list(self.plot_boxes.values()),
+            flex_wrap = 'nowrap',
+            gap = f'{2 * (50 - constants.PLOT_WIDTH)}%',
+            styles = {'height':'64%', 'width':'100%',
+                      'overflow':'scroll'}
         )
-
-        self.radec_pane = pn.pane.Plotly(
-            name = 'ast_radec',
-            config = self.get_plot_configs('ra_dec_astrometry'),
-            sizing_mode = 'stretch_height',
-            visible = False,
-            styles = constants.BASE_PLOT_STYLE
-        )
-        
-        self.ra_pane = pn.pane.Plotly(
-            name = 'ast_ra',
-            config = self.get_plot_configs('ra_astrometry'),
-            sizing_mode = 'stretch_height',
-            visible = False,
-            styles = constants.BASE_PLOT_STYLE
-        )
-        
-        self.dec_pane = pn.pane.Plotly(
-            name = 'ast_dec',
-            config = self.get_plot_configs('dec_astrometry'),
-            sizing_mode = 'stretch_height',
-            visible = False,
-            styles = constants.BASE_PLOT_STYLE
-        )
-        
-        self.plot_panes = {
-            'phot': self.phot_pane, 
-            'ast_radec': self.radec_pane, 
-            'ast_ra': self.ra_pane, 
-            'ast_dec': self.dec_pane
-        }
-
-        self.plot_layout = pn.FlexBox(objects = list(self.plot_panes.values()),
-                                      flex_wrap = 'nowrap',
-                                      gap = f'{2 * (50 - constants.PLOT_WIDTH)}%',
-                                      styles = {'height':'65%', 'width':'100%',
-                                                'overflow':'scroll'})
-
-        # Set up initial figure formats
-        self.init_figs = {
-            'phot': go.Figure(),
-            'ast_radec': go.Figure(),
-            'ast_ra': go.Figure(),
-            'ast_dec': go.Figure()
-        }
-        self.set_init_figs()
-
-        # Initially empty figures for stylistic purposes (not really necessary)
-        self.set_blank_figs()
-
+    
         # Define slider-related dependencies
             # This is only used because @pn.depends with dictionary values doesn't work well
         super().__init__(**params)
-        self.settings_info.param_sliders['Num_pts'].param.watch(self._update_mod_components, 'value')
+        self.settings_info.param_sliders['Num_pts'].param.watch(self._update_mod_components, 'value_throttled')
 
         self.settings_info.param_sliders['Num_samps'].param.watch(self._update_gp_samps, 'value')
         self.settings_info.param_sliders['Num_samps'].param.watch(self._update_phot_plots, 'value')
@@ -971,35 +1022,27 @@ class PlotRow(Viewer):
         self.settings_info.param_sliders['Time'].param.watch(self._update_phot_plots, 'value')
         self.settings_info.param_sliders['Time'].param.watch(self._update_ast_plots, 'value')
 
-
-    def get_plot_configs(self, plot_name):
-        plot_configs = {
-            'toImageButtonOptions': {'filename': plot_name, 'scale': 5}, 
-            'displayModeBar': True, 'displaylogo': False,
-            'modeBarButtonsToRemove': ['autoScale', 'lasso', 'select']
-            }
-        return plot_configs 
-    
-    def set_init_figs(self):
-        for key in self.init_figs.keys():
-            self.init_figs[key].update_xaxes(
-                title = constants.FORMAT_DICT[key][1][0],
+    def make_plot_components(self, plot_names):
+        init_figs, plotly_panes, plot_boxes = {}, {}, {}
+        for name in plot_names:
+            # Make initial figure formats
+            fig = go.Figure()
+            fig.update_xaxes(
+                title = constants.FORMAT_DICT[name][1][0],
                 title_font_size = constants.FONTSIZES['plot_axes_labels'],
                 ticks = 'outside', tickformat = '000',
                 color = 'white',
                 gridcolor = constants.CLRS['gridline'], zeroline = False
             )
-
-            self.init_figs[key].update_yaxes(
-                title = constants.FORMAT_DICT[key][1][1],
+            fig.update_yaxes(
+                title = constants.FORMAT_DICT[name][1][1],
                 title_font_size = constants.FONTSIZES['plot_axes_labels'],
                 ticks = 'outside', tickformat = '000',
                 color = 'white',
                 gridcolor = constants.CLRS['gridline'], zeroline = False
             )
-
-            self.init_figs[key].update_layout(
-                title = dict(text = constants.FORMAT_DICT[key][0], y = 0.99,
+            fig.update_layout(
+                title = dict(text = constants.FORMAT_DICT[name][0], y = 0.99,
                              font = dict(color = 'white', 
                                          size = constants.FONTSIZES['plot_title'])),
                 plot_bgcolor = constants.CLRS['secondary'], 
@@ -1009,22 +1052,47 @@ class PlotRow(Viewer):
                               grouptitlefont_color = 'white'),
                 margin = dict(l = 0, r = 0, t = 30, b = 0)
             )
-        
-        # Reverse y-axis for photometry magnitude
-        self.init_figs['phot'].update_yaxes(autorange = 'reversed')
+            init_figs[name] = fig
 
-    def set_blank_figs(self):
-        blank_fig = go.Figure(layout = dict(plot_bgcolor = constants.CLRS['secondary'],
-                                            paper_bgcolor = constants.CLRS['secondary']))
-        blank_fig.update_xaxes(showgrid = False, zeroline = False, showticklabels = False)
-        blank_fig.update_yaxes(showgrid = False, zeroline = False, showticklabels = False)
-        for pane in self.plot_panes.values():
-            pane.object = blank_fig
+            # Make plotly pane
+            plotly_configs = {
+                'toImageButtonOptions': {'filename': name, 'scale': 5}, 
+                'displayModeBar': True, 'displaylogo': False,
+                'modeBarButtonsToRemove': ['autoScale', 'lasso', 'select']
+            }
+            pane = pn.pane.Plotly(
+                name = name,
+                config = plotly_configs,
+                sizing_mode = 'stretch_both'
+            )
+            plotly_panes[name] = pane
+
+            # Make flexbox for plotly pane
+            plot_boxes[name] = pn.FlexBox(
+                self.loading_indicator,
+                justify_content = 'center',
+                align_content = 'center',
+                styles = constants.BASE_PLOTBOX_STYLE
+            )
+
+         # Reverse y-axis for photometry magnitude
+        init_figs['phot'].update_yaxes(autorange = 'reversed')
+
+        return init_figs, plotly_panes, plot_boxes
+
+    @pn.depends('settings_info.error_trigger', watch = True)
+    def set_errored_layout(self):
+        for name in self.plot_names:
+            self.plot_boxes[name].objects = [self.error_indicator]
+
+    def set_loading_layout(self):
+        for name in self.plot_names:
+            self.plot_boxes[name].objects = [self.loading_indicator]
 
     @pn.depends('settings_info.dashboard_checkbox.value', watch = True)
     def _update_selected_plots(self):
-        self.selected_phot_plots = list({'phot'} & set(self.settings_info.dashboard_checkbox.value))
-        self.selected_ast_plots = list({'ast_radec', 'ast_ra', 'ast_dec'} & set(self.settings_info.dashboard_checkbox.value))
+        self.selected_phot_plots = list(set(constants.PHOT_PLOT_NAMES) & set(self.settings_info.dashboard_checkbox.value))
+        self.selected_ast_plots = list(set(constants.AST_PLOT_NAMES) & set(self.settings_info.dashboard_checkbox.value))
 
     @pn.depends('settings_info.trigger_param_change', watch = True)
     def _update_mod_components(self, *event):
@@ -1041,6 +1109,14 @@ class PlotRow(Viewer):
             try:
                 # Set model
                 self.mod = getattr(model, self.paramztn_info.selected_paramztn)(**self.settings_info.param_values)
+
+                # Check if throttled Num_pts was the event
+                if (event != ()) and (event[0].obj.name == self.settings_info.param_sliders['Num_pts'].name):
+                    self.set_loading_layout()
+                
+                # Check if parameter sliders are throttled
+                elif self.settings_info.throttled == True:
+                    self.set_loading_layout()
 
                 # Update photometry
                 # Note: there are currently no extra photometry traces from phot_checkbox
@@ -1059,7 +1135,6 @@ class PlotRow(Viewer):
                     self.settings_info.set_slider_errored_layout(undo = True)
 
             except:
-                self.set_blank_figs()
                 self.settings_info.set_slider_errored_layout(undo = False)
 
     ########################
@@ -1070,7 +1145,6 @@ class PlotRow(Viewer):
         # Check if photometry is selected in dashboard
         # Check for locks. This is needed to guard against checkbox resets
         if (len(self.selected_phot_plots) != 0) and (self.settings_info.lock_trigger == False):
-            
             # Check for GP
             if 'GP' in self.paramztn_info.selected_paramztn:
                 selected_params = self.paramztn_info.selected_params
@@ -1196,7 +1270,11 @@ class PlotRow(Viewer):
             )
 
             # Update photometry pane with figure
-            self.phot_pane.object = phot_fig
+            self.plotly_panes['phot'].object = phot_fig
+
+            # Check if loading or error indicator is on
+            if 'indicator' in self.plot_boxes['phot'].objects[0].name:
+                self.plot_boxes['phot'].objects = [self.plotly_panes['phot']]
 
     ########################
     # Astrometry Methods
@@ -1281,10 +1359,10 @@ class PlotRow(Viewer):
             # Get times that are less than or equal to Time slider
             time_idx = np.where(self.time <= self.settings_info.param_sliders['Time'].value)[0]
 
-            for plot_key in self.selected_ast_plots:
+            for plot_name in self.selected_ast_plots:
 
                 # Create figure
-                ast_fig = go.Figure(self.init_figs[plot_key])
+                ast_fig = go.Figure(self.init_figs[plot_name])
 
                 # Get all trace keys that are to be plotted
                 selected_trace_keys = set(self.main_ast_keys + self.extra_ast_keys)
@@ -1294,8 +1372,8 @@ class PlotRow(Viewer):
                 all_x, all_y = [], []
 
                 for trace_key in selected_time_keys:
-                    self.ast_traces[trace_key].plot_time(fig = ast_fig, plot_key = plot_key, time_idx = time_idx)
-                    x_list, y_list = self.ast_traces[trace_key].get_xy_lists(plot_key = plot_key)
+                    self.ast_traces[trace_key].plot_time(fig = ast_fig, plot_name = plot_name, time_idx = time_idx)
+                    x_list, y_list = self.ast_traces[trace_key].get_xy_lists(plot_name = plot_name)
                     all_x += x_list
                     all_y += y_list
 
@@ -1304,14 +1382,14 @@ class PlotRow(Viewer):
                     selected_full_keys = selected_trace_keys & self.full_trace_keys
 
                     for trace_key in selected_full_keys:
-                        self.ast_traces[trace_key].plot_full(fig = ast_fig, plot_key = plot_key)
+                        self.ast_traces[trace_key].plot_full(fig = ast_fig, plot_name = plot_name)
 
                 # Get all keys with a marker trace and plot them
                 if 'marker' in self.settings_info.genrl_plot_checkbox.value:
                     selected_marker_keys = selected_trace_keys & self.marker_keys
 
                     for trace_key in selected_marker_keys:
-                        self.ast_traces[trace_key].plot_marker(fig = ast_fig, plot_key = plot_key, marker_idx = time_idx[-1])
+                        self.ast_traces[trace_key].plot_marker(fig = ast_fig, plot_name = plot_name, marker_idx = time_idx[-1])
 
                 # Set up traces to fix axis limits
                 min_x, max_x = np.nanmin(all_x), np.nanmax(all_x)
@@ -1324,7 +1402,11 @@ class PlotRow(Viewer):
                 )
 
                 # Update astrometry pane with figure
-                self.plot_panes[plot_key].object = ast_fig
+                self.plotly_panes[plot_name].object = ast_fig
+
+                # Check if loading or error indicator is on
+                if 'indicator' in self.plot_boxes[plot_name].objects[0].name:
+                        self.plot_boxes[plot_name].objects = [self.plotly_panes[plot_name]]
 
     def __panel__(self):
         return self.plot_layout
@@ -1349,21 +1431,13 @@ class Dashboard(Viewer):
         
         # Plot section
         self.plot_row = PlotRow(paramztn_info = self.paramztn_info, settings_info = self.settings_tabs)
-        
+        self.single_plot = param.Boolean(default = False)   # Variable to store dashboard plot component if there is only a single plot
+
         # Entire dashboard layout
-        self.db_components = {
-            'summary': self.param_summary.summary_layout,
-            'phot': self.plot_row.phot_pane,
-            'ast_radec': self.plot_row.radec_pane,
-            'ast_ra': self.plot_row.ra_pane,
-            'ast_dec': self.plot_row.dec_pane
-        }
-
-        # a variable to store dashboard plot component if there is only a single plot
-        self.single_plot = param.Boolean(default = False)
-
+        self.db_components = self.set_db_components()
         self.dashboard_layout = pn.FlexBox(self.plot_row,
                                            self.param_row,
+                                           gap = '1%',
                                            flex_direction = 'column',
                                            visible = False,
                                            styles = {'margin-left':'1%',
@@ -1378,21 +1452,30 @@ class Dashboard(Viewer):
         # Add dependency of checkbox and layout
         # Note: this is needed because 'settings_tabs' is a class that uses a required input class
         self.settings_tabs.dashboard_checkbox.param.watch(self._update_layout, 'value')
-        self.settings_tabs.error_msg.param.watch(self._range_errored_layout, 'object')
         
+    def set_db_components(self):
+        db_components = {}
+
+        # Set labels for plot boxes
+        for name in self.plot_row.plot_names:
+            db_components[name] = self.plot_row.plot_boxes[name]
+
+        # Set label for summary
+        db_components['summary'] = self.param_summary.summary_layout
+
+        return db_components
+    
     @pn.depends('paramztn_info.selected_paramztn', watch = True)
     def _hide_show(self):
         if self.paramztn_info.selected_paramztn == None:
             self.dashboard_layout.visible = False
-            self.plot_row.set_blank_figs()
             
         else:
-            self.dashboard_layout.visible = True
             self.settings_tabs.update_table_and_checks()
             self.settings_tabs.update_sliders()
+            self.dashboard_layout.visible = True
             
     def _update_layout(self, *event):
-        # Set settings_tabs to its unerrored layout
         self.settings_tabs.set_base_layout()
 
         unchecked_components = set(self.db_components.keys()) - set(self.settings_tabs.dashboard_checkbox.value)
@@ -1404,6 +1487,13 @@ class Dashboard(Viewer):
         for key in unchecked_components:
             self.db_components[key].visible = False
 
+        # Check for summary
+        if 'summary' in self.settings_tabs.dashboard_checkbox.value:
+            self.settings_tabs.tabs_layout.tabs_location = 'above'
+        else:
+             self.settings_tabs.tabs_layout.tabs_location = 'left'
+
+        # Check for number of plots
         if len(checked_plots) > 0:
             self.param_row.styles = {'height':'35%'}
             self.plot_row.plot_layout.visible = True
@@ -1411,28 +1501,18 @@ class Dashboard(Viewer):
             # Expand plot if there is only a single plot
             if len(checked_plots) == 1:
                 self.single_plot = True
-                self.db_components[checked_plots[0]].styles = constants.SINGLE_PLOT_STYLE
+                self.db_components[checked_plots[0]].styles = constants.SINGLE_PLOTBOX_STYLE
 
             # Reset plot-widths if not single plot
             elif self.single_plot == True:
-                for plot in self.plot_row.plot_panes.values():
-                    plot.styles = constants.BASE_PLOT_STYLE
+                for box in self.plot_row.plot_boxes.values():
+                    box.styles = constants.BASE_PLOTBOX_STYLE
                 self.single_plot = False
 
         # Hide plot row and expand param row if no plots are checked
         else:
             self.param_row.styles = {'height':'100%'}
             self.plot_row.plot_layout.visible = False
-        
-    def _range_errored_layout(self, *event):
-        if self.settings_tabs.error_msg.object == None:
-            self._update_layout()
-            
-        else:
-            self.settings_tabs.set_range_errored_layout()
-            self.param_row.styles = {'height':'100%'}
-            self.plot_row.plot_layout.visible = False
-            self.param_summary.summary_layout.visible = False
                           
     def __panel__(self):
         return self.dashboard_layout
@@ -1451,21 +1531,43 @@ class BAGLECalc(Viewer):
     paramztn_row = ParamztnSelect(mod_info = mod_row)
     dashboard = Dashboard(paramztn_info = paramztn_row)
     
-    # Layout for model and parameterization selection rows
-    selection_layout = pn.FlexBox(
-        pn.layout.Divider(),
+    # Model header
+    mod_header = pn.widgets.StaticText(value = 'Model:', align = 'end',
+                                       styles = {'font-size': constants.FONTSIZES['header'], 
+                                                 'font-weight':'550'})
+    
+    # Parameterization Header
+    paramztn_header = pn.widgets.StaticText(value = f'Parameterization:', align = 'end',
+                                            styles = {'font-size':constants.FONTSIZES['header'],
+                                                      'font-weight':'550'})
+    
+    header_col = pn.Column(
+        mod_header,
+        paramztn_header,
+        styles = {'margin-top':'-0.08rem'}
+    )
+
+    selection_col = pn.Column(
         mod_row,
         paramztn_row,
-        pn.layout.Divider(),
-        flex_direction = 'column',
-        align_items = 'center',
-        styles = {'width': '90%'}
+        styles = {'width':'70%'}
+    )
+    # Layout for model and parameterization selection rows
+    selection_layout = pn.FlexBox(
+        header_col,
+        selection_col,
+        flex_direction = 'row',
+        justify_content = 'center',
+        flex_wrap = 'nowrap',
+        styles = {'width': '90%', 'margin-bottom':'-0.2rem'}
     )
     
     # Content layout for entire page
     page_content = pn.FlexBox(
         page_title,
+        pn.layout.Divider(styles = {'width':'90%'}),
         selection_layout,
+        pn.layout.Divider(styles = {'width':'90%'}),
         dashboard,
         flex_direction = 'column',
         align_items = 'center',

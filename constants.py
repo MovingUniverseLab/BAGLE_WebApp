@@ -198,17 +198,21 @@ CLRS = {
                  f'rgba(15, 133, 84, {GP_ALPHA})')
 }
 
+HTML_FONTFAMILY = 'Helvetica'
+
 # Dictionary for font sizes
 FONTSIZES = {
     'page_title':' 1.6rem',
     'header': '1.4rem',
-    'paramztn_error': '1.4rem',
-    'dropdown': '0.7rem',
+    'paramztn_error': '1.6rem',
+    'dropdown': '0.75rem',
     'plus': '0.8rem',
-    'btn': '0.7rem',
+    'btn': '0.75rem',
     'slider': '0.8rem',
-    'table_title': '0.75rem',
-    'table_txt': '0.75rem',
+    'tablr_title': '0.75rem',
+    'tablr_txt': '0.75rem',
+    'tabs_txt': '0.8rem',
+    'checkbox_txt': '0.7rem',
     'error_title': '1.5rem',
     'error_txt': '1.4rem',
     'tooltip': '0.7rem',
@@ -320,7 +324,7 @@ TABLTR_STYLE = '''
     .pnx-tabulator {
         border: white solid 0.08rem !important;
     }
-'''%(FONTSIZES['table_title'], FONTSIZES['table_txt'])
+'''%(FONTSIZES['tablr_title'], FONTSIZES['tablr_txt'])
 
 # CSS stylesheet for tabs
 BASE_TABS_STYLE = '''
@@ -353,22 +357,28 @@ ERRORED_TABS_STYLE = '''
 # Photometry and Astrometry Plot Formats
 ################################################
 PLOT_WIDTH = 49.75 # plot width in percentage
-BASE_PLOT_STYLE = {
+
+BASE_PLOTBOX_STYLE = {
+    'background':CLRS['secondary'],
     'border': 'white solid 0.08rem', 
-    'background': CLRS['secondary'],
+    'height': '100%',
     'width': f'{PLOT_WIDTH}%',
-    'margin': '0',
-    'flex-shrink': '0',
-    'padding': '0.5rem', 'padding-bottom': '0'
+    'flex-shrink': '0'
+
 }
 
-SINGLE_PLOT_STYLE = {
-                'border': 'white solid 0.08rem', 
-                'background': CLRS['secondary'],
-                'width': '100%',
-                'margin': '0',
-                'flex-shrink': '0',
-                'padding':'0.5rem', 'padding-bottom':'0'
+SINGLE_PLOTBOX_STYLE = {
+    'background':CLRS['secondary'],
+    'border': 'white solid 0.08rem', 
+    'height': '100%',
+    'width': '100%',
+    'flex-shrink': '0'
+}
+
+PLOT_STYLE = {
+    'background': CLRS['secondary'],
+    # 'border':'red solid 5px',
+    # 'margin-right': '0 !important'
 }
 
 # Figure titles
@@ -386,6 +396,9 @@ DEC_XY = ('Time [MJD]', '&#916;&#120575; [arcsec]')
 
 # Plot formating dictionary for plot panes
     # Note: order of list is (Figure Titles, Figure Axis Labels)
+
+PHOT_PLOT_NAMES = ['phot']
+AST_PLOT_NAMES = ['ast_radec', 'ast_ra', 'ast_dec']
 FORMAT_DICT = {
     'phot': (PHOT_TITLE, PHOT_XY),
     'ast_radec': (RADEC_TITLE, RADEC_XY),
