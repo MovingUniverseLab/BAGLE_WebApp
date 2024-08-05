@@ -186,6 +186,7 @@ CLRS = {
     'light': 'rgb(75, 255, 239)',
     'selected': 'rgb(101, 175, 233)',
     'gridline': 'rgb(102, 102, 102)',
+    'tab_note': 'rgb(204, 204, 204)',
     'gp_cycle': (f'rgba(34, 255, 167, {GP_ALPHA})',
                  f'rgba(246, 249, 38, {GP_ALPHA})',
                  f'rgba(238, 166, 251, {GP_ALPHA})',
@@ -219,8 +220,8 @@ FONTSIZES = {
     'summary_txt': '0.95rem',
     'plot_axes_ticks': 10,
     'plot_axes_labels': 14,
-    'plot_title': 16,
-    'legendgroup': 10
+    'plot_title': 18,
+    'legendgroup': 9
 }
 
 # CSS stylesheet for drop down menus

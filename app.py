@@ -290,8 +290,8 @@ class SettingsTabs(Viewer):
                                                    design = Material,
                                                    stylesheets = [constants.BASE_SLIDER_STYLE])
 
-    param_sliders['Num_pts'] = pn.widgets.IntSlider(name = 'Trace Resolution (Throttled)',
-                                                    start = 1000, value = 3500, end = 20000, step = 100,
+    param_sliders['Num_pts'] = pn.widgets.IntSlider(name = 'Number of Points (Trace Resolution)',
+                                                    start = 1000, value = 3500, end = 25000, step = 100,
                                                     format = '1[.]000',
                                                     margin = (10, 12, -2, 18),
                                                     design = Material,
@@ -319,8 +319,8 @@ class SettingsTabs(Viewer):
         object = f'''
             <span style="font-size:{constants.FONTSIZES['tabs_txt']};font-family:{constants.HTML_FONTFAMILY}">
                 <b>Note:</b> Trace resolution slider is always throttled.
-                <br>
-                <b>Note:</b> Parameter sliders are throttled for binary-lens models, and when the number of points exceed 10000.
+                </br>
+                <b>Note:</b> Parameter sliders are throttled for binary-lens models and when the number of points exceed 10000.
             </span>
         ''',
         styles = {'color':'rgb(204, 204, 204)', 'margin-bottom': '0', 'text-align':'start', 'width':'90%'}
@@ -367,81 +367,73 @@ class SettingsTabs(Viewer):
     }
     dashboard_settings_header = pn.pane.HTML(
         object = f'''
-            <span style="font-size:{constants.FONTSIZES['header']};font-family:{constants.HTML_FONTFAMILY}">
+            <span style="font-size:{constants.FONTSIZES['header']};font-family:{constants.HTML_FONTFAMILY};color:white">
                 <u><b>Dashboard Layout</b></u>
             </span>
-        ''',
-        styles = {'color':'white', 'margin-top': '0', 'margin-bottom': '0'}
-    )
-    dashboard_note = pn.pane.HTML(
-        object = f'''
-            <span style="font-size:{constants.FONTSIZES['checkbox_txt']};font-family:{constants.HTML_FONTFAMILY}">
+            </br>
+            <span style="font-size:{constants.FONTSIZES['checkbox_txt']};font-family:{constants.HTML_FONTFAMILY};color:{constants.CLRS['tab_note']}">
                 <b>Note:</b> For 3+ plots, scroll to the right.
             </span>
         ''',
-        styles = {'color':'rgb(204, 204, 204)', 'margin-top': '0', 'margin-bottom': '0'}
+        margin = 0
     )
+
     dashboard_checkbox = pn.widgets.CheckBoxGroup(inline = False, align = 'center')
     dashboard_settings = pn.Column(dashboard_settings_header, 
-                                   dashboard_note,
                                    dashboard_checkbox, 
-                                   styles = {'margin':'0.5rem'})
+                                   styles = {'margin':'0.8rem'})
     
     # Checkbox for general plot settings
     genrl_plot_settings_header = pn.pane.HTML(
         object = f'''
-            <span style="font-size:{constants.FONTSIZES['header']};font-family:{constants.HTML_FONTFAMILY}">
+            <span style="font-size:{constants.FONTSIZES['header']};font-family:{constants.HTML_FONTFAMILY};color:white">
                 <u><b>General Plot Settings</b></u>
             </span>
         ''',
-        styles = {'color':'white', 'margin-top': '0', 'margin-bottom': '0'}
+        margin = 0
     )
     genrl_plot_checkbox = pn.widgets.CheckBoxGroup(options = {'Show Time Markers': 'marker', 
                                                               'Show Full Traces': 'full_trace'},
                                                    inline = False, align = 'center')
     genrl_plot_settings = pn.Column(genrl_plot_settings_header, 
                                     genrl_plot_checkbox, 
-                                    styles = {'margin':'0.5rem'})
+                                    styles = {'margin':'0.8rem'})
     
     
     # Checkbox for photometry settings (currently no options to add)
     phot_settings_header = pn.pane.HTML(
         object = f'''
-            <span style="font-size:{constants.FONTSIZES['header']};font-family:{constants.HTML_FONTFAMILY}">
+            <span style="font-size:{constants.FONTSIZES['header']};font-family:{constants.HTML_FONTFAMILY};color:white">
                 <u><b>Photometry Plot Settings</b></u>
             </span>
         ''',
-        styles = {'color':'white', 'margin-bottom': '0'}
+        margin = 0
     )
     phot_checkbox = pn.widgets.CheckBoxGroup(inline = False, align = 'center')
     phot_settings = pn.Column(phot_settings_header, 
                               phot_checkbox, 
                               visible = False,
-                              styles = {'margin':'0.5rem'})
+                              styles = {'margin':'0.8rem'})
     
     # Checkbox for astrometry settings
     ast_settings_header = pn.pane.HTML(
         object = f'''
-            <span style="font-size:{constants.FONTSIZES['header']};font-family:{constants.HTML_FONTFAMILY}">
+            <span style="font-size:{constants.FONTSIZES['header']};font-family:{constants.HTML_FONTFAMILY};color:white">
                 <u><b>Astrometry Plot Settings</b></u>
             </span>
-        ''',
-        styles = {'color':'white', 'margin-bottom': '0'}
-    )
-    ast_note = pn.pane.HTML(
-        object = f'''
-            <span style="font-size:{constants.FONTSIZES['checkbox_txt']};font-family:{constants.HTML_FONTFAMILY}">
+            </br>
+            <span style="font-size:{constants.FONTSIZES['checkbox_txt']};font-family:{constants.HTML_FONTFAMILY};color:{constants.CLRS['tab_note']}">
                 <b>Note:</b> Lens may not be visible without Time Marker.
             </span>
         ''',
-        styles = {'color':'rgb(204, 204, 204)', 'margin-top': '0', 'margin-bottom': '0'}
+        margin = 0
     )
+
     ast_checkbox = pn.widgets.CheckBoxGroup(inline = False, align = 'center')
     ast_settings = pn.Column(ast_settings_header, 
-                             ast_note,
                              ast_checkbox, 
                              visible = False,
-                             styles = {'margin':'0.5rem'})
+                             styles = {'margin':'0.8rem'})
     
     performance_note = pn.pane.HTML(
         object = f'''
@@ -449,7 +441,7 @@ class SettingsTabs(Viewer):
                 <b>Note:</b> For best performance, it's recommended to either reduce the number of traces or the number of figures while using sliders.
             </span>
         ''',
-        styles = {'color':'rgb(204, 204, 204)', 'margin-bottom': '0', 'text-align':'center', 'width':'75%'},
+        styles = {'color':constants.CLRS['tab_note'], 'margin-bottom':'0', 'width':'95%'},
         align = 'center'
     )
 
@@ -464,10 +456,31 @@ class SettingsTabs(Viewer):
         
     settings_layout = pn.Column(
         performance_note,
+        pn.layout.Divider(),
         all_settings,
         name = 'Other Settings',
         styles = {'overflow':'scroll'}
     )
+
+    # Links tab
+    github_links = pn.pane.HTML(
+        object = f'''
+            <span style="font-size:{constants.FONTSIZES['header']}">
+                <b><u>GitHub Repositories:</u></b>
+            </span>
+            </br>
+            <span style="font-size:{constants.FONTSIZES['tabs_txt']};color:rgb(204, 204, 204)">
+                Please feel free to send any feedback through the BAGLE Web App repo. Thank you!
+            </span>
+            </br>
+            <ul style="font-size:{constants.FONTSIZES['summary_txt']}">
+                <li><a href="https://github.com/MovingUniverseLab/BAGLE_WebApp" target="_blank">BAGLE Web Application</a></li>
+                <li><a href="https://github.com/MovingUniverseLab/BAGLE_Microlensing/tree/dev" target="_blank">BAGLE Microlensing (Dev Branch)</a></li>
+            </ul>
+        ''',
+        name = 'Links', styles = {'color':'white', 'width':'95%', 'font-family':constants.HTML_FONTFAMILY}
+    )
+
     # Layout for entire tab section
     tabs_layout = pn.Tabs(styles = {'border':'white solid 0.08rem',
                                     'background':constants.CLRS['secondary']})
@@ -483,7 +496,7 @@ class SettingsTabs(Viewer):
         self.param_sliders['Num_pts'].param.watch(self.num_pts_slider_watchers, 'value_throttled')
 
     def set_base_layout(self):
-        self.tabs_layout.objects = [self.sliders_layout, self.range_table, self.settings_layout]
+        self.tabs_layout.objects = [self.sliders_layout, self.range_table, self.settings_layout, self.github_links]
 
         for object in self.tabs_layout.objects:
             object.visible = True
@@ -520,7 +533,7 @@ class SettingsTabs(Viewer):
         if self.error_msg.object == None:
             self.set_base_layout()
         else:
-            self.tabs_layout.objects = [self.error_msg, self.range_table, self.settings_layout]
+            self.tabs_layout.objects = [self.error_msg, self.range_table, self.settings_layout, self.github_links]
 
             self.tabs_layout.active = 0
             self.settings_layout.visible = False
@@ -962,26 +975,26 @@ class PlotRow(Viewer, Indicators):
         'lens': traces.Ast_Lens(
             group_name = 'Lens(es)',
             zorder = 100,
-            pri_clr = 'rgb(148, 52, 110)', sec_clr = 'rgb(189, 66, 140)',
+            pri_clr = 'rgb(148, 52, 110)', sec_clr = 'rgb(202, 104, 163)',
             time_width = 2, full_width  = 1.5, marker_size = 10
         )
     }
 
     # Sets for what keys have a time trace, a full trace, or a time marker
-    time_trace_keys = {'non_gp', 'gp_prior', 'gp_predict', 'gp_samps',
+    time_trace_keys = ('non_gp', 'gp_prior', 'gp_predict', 'gp_samps',
                        'unres_len', 'unres_unlen', 
                        'ps_res_len',
-                       'bs_res_unlen_pri', 'bs_res_unlen_sec', 'bs_res_len_pri', 'bs_res_len_sec',
-                       'lens'}
-    full_trace_keys = {'non_gp', 'gp_prior', 'gp_predict',
+                       'bs_res_unlen_pri', 'bs_res_len_pri', 'bs_res_unlen_sec', 'bs_res_len_sec',
+                       'lens')
+    full_trace_keys = ('non_gp', 'gp_prior', 'gp_predict',
                        'unres_len', 'unres_unlen', 
                        'bs_res_unlen_pri', 'bs_res_unlen_sec', 
-                       'lens'}
-    marker_keys = {'non_gp', 'gp_prior', 'gp_predict',
+                       'lens')
+    marker_keys = ('non_gp', 'gp_prior', 'gp_predict',
                    'unres_len', 'unres_unlen', 
                    'ps_res_len',
-                   'bs_res_unlen_pri', 'bs_res_unlen_sec', 'bs_res_len_pri', 'bs_res_len_sec',
-                   'lens'}
+                   'bs_res_unlen_pri', 'bs_res_len_pri', 'bs_res_unlen_sec', 'bs_res_len_sec',
+                   'lens')
 
     ########################
     # General Methods
@@ -1042,28 +1055,28 @@ class PlotRow(Viewer, Indicators):
                 gridcolor = constants.CLRS['gridline'], zeroline = False
             )
             fig.update_layout(
-                title = dict(text = constants.FORMAT_DICT[name][0], y = 0.99,
+                title = dict(text = constants.FORMAT_DICT[name][0], y = 0.98,
                              font = dict(color = 'white', 
                                          size = constants.FONTSIZES['plot_title'])),
                 plot_bgcolor = constants.CLRS['secondary'], 
                 paper_bgcolor = constants.CLRS['secondary'],
                 font_size = constants.FONTSIZES['plot_axes_ticks'],
-                legend = dict(font_color = 'white',
-                              grouptitlefont_color = 'white'),
-                margin = dict(l = 0, r = 0, t = 30, b = 0)
+                legend = dict(grouptitlefont_color = 'white'),
+                margin = dict(l = 75, r = 5, t = 30, b = 55)
             )
             init_figs[name] = fig
 
             # Make plotly pane
             plotly_configs = {
-                'toImageButtonOptions': {'filename': name, 'scale': 5}, 
+                'toImageButtonOptions': {'filename': name, 'scale': 3}, 
                 'displayModeBar': True, 'displaylogo': False,
                 'modeBarButtonsToRemove': ['autoScale', 'lasso', 'select']
             }
             pane = pn.pane.Plotly(
                 name = name,
                 config = plotly_configs,
-                sizing_mode = 'stretch_both'
+                sizing_mode = 'stretch_both',
+                margin = 0
             )
             plotly_panes[name] = pane
 
@@ -1107,6 +1120,11 @@ class PlotRow(Viewer, Indicators):
             
             # Check for bad parameter combination (e.g. dL > dS)  
             try:
+                # Check if 'Num_pts' slider is disabled
+                    # Note: this assumes that the 'Num_pts' slider will never cause an exception, which should be true
+                if self.settings_info.param_sliders['Num_pts'].disabled == True:
+                    self.settings_info.set_slider_errored_layout(undo = True)
+
                 # Set model
                 self.mod = getattr(model, self.paramztn_info.selected_paramztn)(**self.settings_info.param_values)
 
@@ -1128,11 +1146,6 @@ class PlotRow(Viewer, Indicators):
                 self._update_main_ast_traces()
                 self._update_extra_ast_traces()
                 self._update_ast_plots()
-
-                # Check if 'Num_pts' slider is disabled
-                    # Note: this assumes that the 'Num_pts' slider will never cause an exception, which should be true
-                if self.settings_info.param_sliders['Num_pts'].disabled == True:
-                    self.settings_info.set_slider_errored_layout(undo = True)
 
             except:
                 self.settings_info.set_slider_errored_layout(undo = False)
@@ -1238,7 +1251,8 @@ class PlotRow(Viewer, Indicators):
             selected_trace_keys = set(self.main_phot_keys + self.extra_phot_keys)
 
             # Get all keys with a time trace and plot them
-            selected_time_keys = selected_trace_keys & self.time_trace_keys
+                # Note: putting selected_trace_keys first takes longer, but makes ordering much easier
+            selected_time_keys = [key for key in self.time_trace_keys if key in selected_trace_keys]
             all_phot = []
             
             for key in selected_time_keys:
@@ -1246,15 +1260,17 @@ class PlotRow(Viewer, Indicators):
                 all_phot += self.phot_traces[key].get_phot_list()
 
             # Get all keys with a full trace and plot them
+                # Note: putting selected_trace_keys first takes longer, but makes ordering much easier
             if 'full_trace' in self.settings_info.genrl_plot_checkbox.value:
-                selected_full_keys = selected_trace_keys & self.full_trace_keys
+                selected_full_keys = [key for key in self.full_trace_keys if key in selected_trace_keys]
 
                 for key in selected_full_keys:
                     self.phot_traces[key].plot_full(fig = phot_fig)
 
             # Get all keys with a marker trace and plot them
+                # Note: putting selected_trace_keys first takes longer, but makes ordering much easier
             if 'marker' in self.settings_info.genrl_plot_checkbox.value:
-                selected_marker_keys = selected_trace_keys & self.marker_keys
+                selected_marker_keys = [key for key in self.marker_keys if key in selected_trace_keys]
 
                 for key in selected_marker_keys:
                     self.phot_traces[key].plot_marker(fig = phot_fig, marker_idx = time_idx[-1])
@@ -1365,10 +1381,11 @@ class PlotRow(Viewer, Indicators):
                 ast_fig = go.Figure(self.init_figs[plot_name])
 
                 # Get all trace keys that are to be plotted
-                selected_trace_keys = set(self.main_ast_keys + self.extra_ast_keys)
+                selected_trace_keys = set(self.extra_ast_keys + self.main_ast_keys)
 
                 # Get all keys with a time trace and plot them
-                selected_time_keys = selected_trace_keys & self.time_trace_keys
+                    # Note: putting selected_trace_keys first takes longer, but makes ordering much easier
+                selected_time_keys = [key for key in self.time_trace_keys if key in selected_trace_keys]
                 all_x, all_y = [], []
 
                 for trace_key in selected_time_keys:
@@ -1378,15 +1395,17 @@ class PlotRow(Viewer, Indicators):
                     all_y += y_list
 
                 # Get all keys with a full trace and plot them
+                    # Note: putting selected_trace_keys first takes longer, but makes ordering much easier
                 if 'full_trace' in self.settings_info.genrl_plot_checkbox.value:
-                    selected_full_keys = selected_trace_keys & self.full_trace_keys
+                    selected_full_keys = [key for key in self.full_trace_keys if key in selected_trace_keys]
 
                     for trace_key in selected_full_keys:
                         self.ast_traces[trace_key].plot_full(fig = ast_fig, plot_name = plot_name)
 
                 # Get all keys with a marker trace and plot them
+                    # Note: putting selected_trace_keys first takes longer, but makes ordering much easier
                 if 'marker' in self.settings_info.genrl_plot_checkbox.value:
-                    selected_marker_keys = selected_trace_keys & self.marker_keys
+                    selected_marker_keys = [key for key in self.marker_keys if key in selected_trace_keys]
 
                     for trace_key in selected_marker_keys:
                         self.ast_traces[trace_key].plot_marker(fig = ast_fig, plot_name = plot_name, marker_idx = time_idx[-1])
