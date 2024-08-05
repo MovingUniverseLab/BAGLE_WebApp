@@ -20,7 +20,7 @@ git clone -b dev https://github.com/MovingUniverseLab/BAGLE_Microlensing.git
 ```
 
 Note that the python packages for the BAGLE_Microlensing repository will also need to be installed. 
-Please refer to [BAGLE github](https://github.com/MovingUniverseLab/BAGLE_Microlensing/tree/dev) for additional information
+Please refer to [BAGLE github](https://github.com/MovingUniverseLab/BAGLE_Microlensing/tree/dev) for additional information.
 ```
 Main Packages to Install:
   - pip3 install matplotlib
