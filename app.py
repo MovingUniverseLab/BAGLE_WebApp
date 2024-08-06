@@ -273,8 +273,11 @@ class SettingsTabs(Viewer):
     # Current parameter being changes. The default 'Time' is just a placeholder
     current_param_change = 'Time'
 
-    # Dictionary for parameter values
-    param_values = param.Dict(default = {})
+    # Dictionary for model parameter values
+    mod_param_values = param.Dict(default = {})
+    
+    # Pandas dataframe for parameter values
+    param_df = param.DataFrame()
     
     #######################
     # Panel Components
@@ -327,18 +330,20 @@ class SettingsTabs(Viewer):
     )
 
     # Layout for all sliders
+    sliders_content = [slider_note, 
+                       pn.layout.Divider(),
+                       const_sliders,
+                       param_sliders['Num_samps'],
+                       pn.layout.Divider(margin = (10, 0, 0, 0)),
+                       mod_sliders,]
+
     sliders_layout = pn.Column(
-        slider_note,
-        pn.layout.Divider(),
-        const_sliders,
-        param_sliders['Num_samps'],
-        pn.layout.Divider(margin = (10, 0, 0, 0)),
-        mod_sliders,
+        objects = sliders_content,
         name = 'Parameter Sliders',
         styles = {'overflow':'scroll', 
                     'height':'100%', 
                     'border-top':'white solid 0.08rem'})
-        
+
     # Table for slider range settings
     range_table = pn.widgets.Tabulator(name = 'Slider Settings',
                                        text_align = 'left', layout = 'fit_columns',
@@ -482,8 +487,13 @@ class SettingsTabs(Viewer):
     )
 
     # Layout for entire tab section
-    tabs_layout = pn.Tabs(styles = {'border':'white solid 0.08rem',
-                                    'background':constants.CLRS['secondary']})
+    tabs_layout = pn.Tabs(
+        sliders_layout,
+        range_table, 
+        settings_layout, 
+        github_links,
+        styles = {'border':'white solid 0.08rem', 'background':constants.CLRS['secondary']}
+    )
     
     #######################
     # Methods
@@ -491,13 +501,12 @@ class SettingsTabs(Viewer):
     def __init__(self, **params):
         super().__init__(**params)
         # set on-edit function for range table
-        self.range_table.on_edit(self.update_param_change)
+        self.range_table.on_edit(self._update_param_change)
 
-        self.param_sliders['Num_pts'].param.watch(self.num_pts_slider_watchers, 'value_throttled')
+        self.param_sliders['Num_pts'].param.watch(self._change_slider_throttle, 'value_throttled')
+        self.param_sliders['Time'].param.watch(self._update_param_values, 'value')
 
     def set_base_layout(self):
-        self.tabs_layout.objects = [self.sliders_layout, self.range_table, self.settings_layout, self.github_links]
-
         for object in self.tabs_layout.objects:
             object.visible = True
 
@@ -507,38 +516,35 @@ class SettingsTabs(Viewer):
         event_slider = self.param_sliders[self.current_param_change]
 
         if undo == False:
+            self.tabs_layout.stylesheets = [constants.ERRORED_TABS_STYLE]
+            self.tabs_layout.active = 0
+
             for param in self.param_sliders.keys():
                 self.param_sliders[param].disabled = True
-            
-            event_slider.param.update(disabled = False,  
-                                      stylesheets = [constants.ERRORED_SLIDER_STYLE])
+            event_slider.param.update(disabled = False, stylesheets = [constants.ERRORED_SLIDER_STYLE])
 
-            self.settings_layout.visible = False
-            self.tabs_layout.stylesheets = [constants.ERRORED_TABS_STYLE]
-
+            self.settings_layout.visible, self.range_table.visible = False, False
             self.error_trigger = not self.error_trigger
 
         else:
+            self.set_base_layout()
+            event_slider.stylesheets = [constants.BASE_SLIDER_STYLE]
+
             for param in self.param_sliders.keys():
                 self.param_sliders[param].disabled = False
-            
-            event_slider.stylesheets = [constants.BASE_SLIDER_STYLE]
-            self.set_base_layout()
 
     @pn.depends('error_msg.object', watch = True)
     def set_range_errored_layout(self):
-        # It's strange, but we need to clear tabs objects before inputting the actual objects.
-        # Otherwise the range_table will be a bit buggy.
-        self.tabs_layout.objects = []
         if self.error_msg.object == None:
             self.set_base_layout()
+            self.sliders_layout.objects = self.sliders_content
+
         else:
-            self.tabs_layout.objects = [self.error_msg, self.range_table, self.settings_layout, self.github_links]
+            self.tabs_layout.stylesheets = [constants.ERRORED_TABS_STYLE]
+            self.sliders_layout.objects = [self.error_msg]
 
             self.tabs_layout.active = 0
             self.settings_layout.visible = False
-            self.tabs_layout.stylesheets = [constants.ERRORED_TABS_STYLE]
-
             self.error_trigger = not self.error_trigger
 
     def _check_genrl_errors(self, param, default_val, min_val, max_val, step_val):
@@ -546,11 +552,11 @@ class SettingsTabs(Viewer):
         if np.any(np.isnan([default_val, min_val, max_val, step_val])):
             error_html += '''<li>Range inputs must be a number.</li>'''     
         if (min_val >= max_val):
-            error_html += '''<li>The minimum value must be smaller than the maximum value</li>'''
-        if ((default_val < min_val) or (default_val > max_val)):
-            error_html += '''<li>The default value is not inside the range</li>'''
+            error_html += '''<li>The minimum value must be smaller than the maximum value.</li>'''
+        elif ((default_val < min_val) or (default_val > max_val)):
+            error_html += '''<li>The default value is not inside the range.</li>'''
         if (step_val > (abs(max_val - min_val))):
-            error_html += '''<li>The step size cannot be larger than the range size</li>'''
+            error_html += '''<li>The step size cannot be larger than the range size.</li>'''
 
         # Make error message and exit if error exists
         if error_html != '''''':
@@ -567,7 +573,7 @@ class SettingsTabs(Viewer):
             # Force the function that called this function to exit
             sys.exit()
 
-    def update_table_and_checks(self):
+    def set_default_table_and_checkboxes(self):
         mod_types = self.paramztn_info.mod_info.type_dict
         
         # Update checkboxes
@@ -608,46 +614,27 @@ class SettingsTabs(Viewer):
         
         # Update range data frame
         idx_list = ['Time'] + self.paramztn_info.selected_params
-        range_df = pd.DataFrame.from_dict(constants.DEFAULT_RANGES, orient = 'index').loc[idx_list]
-        range_df.columns = ['Units', 'Default', 'Min', 'Max', 'Step']
-        range_df.index.name = 'Parameter'
-        
-        self.range_table.value = range_df
+        self.range_table.value = constants.DEFAULT_DF.loc[idx_list]
+
+        # Reset parameter data frame
+        self.param_df = constants.DEFAULT_DF.copy()
 
         # Reset tab to parameter sliders tab
-        # The scroll of the parameter sliders tab sometimes bugs if it directly set with 'active'
+        # The scroll of the parameter sliders tab bugs if it directly set with 'active'
             # For some reason setting 'active = 1' (or some other tab) first seems to fix this
         self.tabs_layout.active = 1
         self.tabs_layout.active = 0
         
-    def update_param_change(self, *event):
+    def _update_param_change(self, *event):
         self.current_param_change = self.range_table.value.index[event[0].row]
-        # self.tabs_layout.active = 0
         self.update_sliders()
     
     def update_sliders(self):
         df = self.range_table.value
         selected_paramztn = self.paramztn_info.selected_paramztn
-
-        # Update constant sliders (i.e. Time, Num_pts, Num_samps)
-        default_val = df.loc['Time'].iloc[1]   
-        min_val = df.loc['Time'].iloc[2]
-        max_val = df.loc['Time'].iloc[3]
-        step_val = df.loc['Time'].iloc[4]
-
-        # Check for errors
-        try:
-            self._check_genrl_errors('Time', default_val, min_val, max_val, step_val)           
-        except SystemExit:
-            return
     
-        # Note: Lock is needed because initial trace changes will be applied by
-            # the initialized param value dictionary (leads to 'trigger_param_change')
+        # Note: Lock is needed because initial trace changes will be applied by the initialized param value dictionary (leads to 'trigger_param_change')
         self.lock_trigger = True
-        self.param_sliders['Time'].param.update(value = default_val,
-                                                start = min_val, 
-                                                end = max_val,
-                                                step = step_val)    
 
         if 'BL' in selected_paramztn:
             self.param_sliders['Num_pts'].param.update(value = 1000)
@@ -659,28 +646,26 @@ class SettingsTabs(Viewer):
             self.param_sliders['Num_samps'].param.update(value = 3)
         else:
             self.param_sliders['Num_samps'].visible = False
-            
-        self.lock_trigger = False
 
         # Create/Update model-related sliders
-        for param in self.paramztn_info.selected_params:
-            units = df.loc[param].iloc[0]
-            default_val = df.loc[param].iloc[1]   
-            min_val = df.loc[param].iloc[2]
-            max_val = df.loc[param].iloc[3]
-            step_val = df.loc[param].iloc[4]
+        for param in (['Time'] + self.paramztn_info.selected_params):
+            units = df.loc[(param, 'Units')]
+            current_val = df.loc[(param, 'Value')]
+            min_val = df.loc[(param, 'Min')]
+            max_val = df.loc[(param, 'Max')]
+            step_val = df.loc[(param, 'Step')]
 
             # Check for errors
             try:
-                self._check_genrl_errors(param, default_val, min_val, max_val, step_val)             
+                self._check_genrl_errors(param, current_val, min_val, max_val, step_val)             
             except SystemExit:
                 return
         
             # Update if slider already exists
             if param in self.param_sliders:
                 # Unwatch before updating to prevent multiple repeated watchers (memory leaks)
-                self.param_sliders[param].param.unwatch(self.slider_watchers[param])
-                self.param_sliders[param].param.update(value = default_val, 
+                # self.param_sliders[param].param.unwatch(self.slider_watchers[param])
+                self.param_sliders[param].param.update(value = current_val, 
                                                        start = min_val, 
                                                        end = max_val,
                                                        step = step_val)
@@ -691,7 +676,7 @@ class SettingsTabs(Viewer):
                 else:
                     param_label = param + f' [{units}]'
                 self.param_sliders[param] = pn.widgets.FloatSlider(name = param_label,
-                                                                   value = default_val, 
+                                                                   value = current_val, 
                                                                    start = min_val, 
                                                                    end = max_val, 
                                                                    step = step_val,
@@ -700,66 +685,76 @@ class SettingsTabs(Viewer):
                                                                    design = Material,
                                                                    stylesheets = [constants.BASE_SLIDER_STYLE])
 
-            # Make watcher for slider
-            # Note: throttled is enabled for binary lens because computation time is significantly longer
-            if 'BL' in selected_paramztn:
-                self.slider_watchers[param] = self.param_sliders[param].param.watch(self.update_param_values, 'value_throttled')
-                self.throttled = True
-
-            else:
-                self.slider_watchers[param] = self.param_sliders[param].param.watch(self.update_param_values, 'value')
-                self.throttled = False
+        self.lock_trigger = False
 
         # Get relevant sliders and update slider_box
         self.mod_sliders.objects = [self.param_sliders[key] for key in self.paramztn_info.selected_params]
 
         # Initialize param values
-        self.update_param_values()
+        self._update_param_values()
+        
+        # Make watcher for slider
+        # Note: throttled is enabled for binary lens because computation time is significantly longer
+        self._change_slider_throttle()
         
         # Clear error message if no errors
         self.error_msg.object = None
 
-    def update_param_values(self, *event):
+    def _update_param_values(self, *event):
         # Note: the '*event' argument is used to set dependency on sliders
 
-        if event != ():
-            # Regex is needed to get just the parameter name and not the unit
-            self.current_param_change = re.match('[^\W\\[]*', event[0].obj.name).group()
+        # Lock needed to prevent excessive triggers when changing parameter sliders through parameterization or data table change
+        if self.lock_trigger == False:
+            
+            # Function triggered by a slider
+            if event != ():
+                # Regex is used to get just the parameter name and not the unit
+                param_name = re.match('[^\W\\[]*', event[0].obj.name).group()
 
-        # Update model parameter values
-        temp_dict = {}
-        for param in self.paramztn_info.selected_params:
-            # phot_name parameters should be inputed as an ndarray/list
-            if param in self.paramztn_info.selected_phot_params:
-                temp_dict[param] = np.array([self.param_sliders[param].value])
-            else:
-                temp_dict[param] = self.param_sliders[param].value
+                self.current_param_change = param_name
 
-        self.param_values = temp_dict
+                # Change data frame value and range table
+                self.param_df.loc[(param_name, 'Value')] = self.param_sliders[param_name].value
 
-        # Note: a trigger is used because if self.param_values doesn't change, updates don't occur
-            # An example of this is changing slider 'Min/Max/Step', but not the slider value (i.e. 'Default')
-            # I think this could also be resolved by using 'onlychanged = False' in the lower-level '.param.watch',
-                # instead of using '@pn.depends,' but that may make readability more confusing.
-                # See: https://param.holoviz.org/user_guide/Dependencies_and_Watchers.html#watchers
-        self.trigger_param_change = not self.trigger_param_change
+                idx_list = ['Time'] + self.paramztn_info.selected_params
+                self.range_table.value = self.param_df.loc[idx_list]
+
+            if (event == ()) or (self.current_param_change != 'Time'):
+                # Update model parameter values
+                temp_dict = {}
+                for param in self.paramztn_info.selected_params:
+                    # Note: 'phot_name' parameters should be inputed as an ndarray/list
+                    if param in self.paramztn_info.selected_phot_params:
+                        temp_dict[param] = np.array([self.param_sliders[param].value])
+                    else:
+                        temp_dict[param] = self.param_sliders[param].value
+
+                self.mod_param_values = temp_dict
+
+                # Note: a trigger is used because if self.mod_param_values doesn't change, updates don't occur
+                # An example of this is changing slider 'Min/Max/Step', but not the slider value (i.e. 'Value')
+                # I think this could also be resolved by using 'onlychanged = False' in the lower-level '.param.watch',
+                    # instead of using '@pn.depends,' but that may make readability more confusing.
+                    # See: https://param.holoviz.org/user_guide/Dependencies_and_Watchers.html#watchers
+                self.trigger_param_change = not self.trigger_param_change
     
-    def num_pts_slider_watchers(self, *event):
+    def _change_slider_throttle(self, *event):
         # Lock needed to prevent overlap with changing data table
         # BL check needed to prevent undoing throttle for binary-lens models
-        if (self.lock_trigger == False) and ('BL' not in self.paramztn_info.selected_paramztn):
-            if self.param_sliders['Num_pts'].value >= 10000:
-                for param in self.paramztn_info.selected_params:
-                    # Unwatch before updating to prevent multiple repeated watchers (memory leaks)
-                    self.param_sliders[param].param.unwatch(self.slider_watchers[param]) 
-                    self.slider_watchers[param] = self.param_sliders[param].param.watch(self.update_param_values, 'value_throttled')
-                    self.throttled = True
+        if self.lock_trigger == False:
+            if (self.param_sliders['Num_pts'].value >= 10000) or ('BL' in self.paramztn_info.selected_paramztn):
+                self.throttled = True
+                dependency = 'value_throttled'
             else:
-                for param in self.paramztn_info.selected_params:
-                    # Unwatch before updating to prevent multiple repeated watchers (memory leaks)
-                    self.param_sliders[param].param.unwatch(self.slider_watchers[param]) 
-                    self.slider_watchers[param] = self.param_sliders[param].param.watch(self.update_param_values, 'value')
-                    self.throttled = False
+                self.throttled = False
+                dependency = 'value'
+
+            for param in self.paramztn_info.selected_params:
+                # Unwatch before updating to prevent multiple repeated watchers (memory leaks)
+                if param in self.slider_watchers:
+                    self.param_sliders[param].param.unwatch(self.slider_watchers[param])
+
+                self.slider_watchers[param] = self.param_sliders[param].param.watch(self._update_param_values, dependency)
 
     def __panel__(self):
         return self.tabs_layout
@@ -807,9 +802,9 @@ class ParamSummary(Viewer, Indicators):
                     label = f'{param} [{constants.DEFAULT_RANGES[param][0]}]'
                 
                 if param in self.paramztn_info.selected_phot_params:
-                    val = self.settings_info.param_values[param][0]
+                    val = self.settings_info.mod_param_values[param][0]
                 else:
-                    val = self.settings_info.param_values[param]
+                    val = self.settings_info.mod_param_values[param]
                 
                 mod_html += f'''
                     <span style="font-size:{constants.FONTSIZES['summary_txt']};">
@@ -824,7 +819,7 @@ class ParamSummary(Viewer, Indicators):
             self.mod_pane.object = mod_html
 
             # Derived parameter summary 
-            mod = getattr(model, self.paramztn_info.selected_paramztn)(**self.settings_info.param_values)
+            mod = getattr(model, self.paramztn_info.selected_paramztn)(**self.settings_info.mod_param_values)
             all_params_dict = vars(mod)
             
             derived_html = ''''''
@@ -1112,7 +1107,7 @@ class PlotRow(Viewer, Indicators):
         # Note: '*event' is needed for 'Num_pts' watcher
     
         # Note: lock needed to guard against Num_pts slider reset because trigger_param_change also triggers the update
-            # See chain: update_table_and_checks => update_sliders => update_param_values in SettingsTabs class
+            # See chain: set_default_table_and_checkboxes => update_sliders => _update_param_values in SettingsTabs class
         if self.settings_info.lock_trigger == False:
             self.time = np.linspace(start = self.settings_info.param_sliders['Time'].start, 
                                     stop = self.settings_info.param_sliders['Time'].end, 
@@ -1126,7 +1121,7 @@ class PlotRow(Viewer, Indicators):
                     self.settings_info.set_slider_errored_layout(undo = True)
 
                 # Set model
-                self.mod = getattr(model, self.paramztn_info.selected_paramztn)(**self.settings_info.param_values)
+                self.mod = getattr(model, self.paramztn_info.selected_paramztn)(**self.settings_info.mod_param_values)
 
                 # Check if throttled Num_pts was the event
                 if (event != ()) and (event[0].obj.name == self.settings_info.param_sliders['Num_pts'].name):
@@ -1161,28 +1156,28 @@ class PlotRow(Viewer, Indicators):
             # Check for GP
             if 'GP' in self.paramztn_info.selected_paramztn:
                 selected_params = self.paramztn_info.selected_params
-                param_values = self.settings_info.param_values
+                mod_param_values = self.settings_info.mod_param_values
 
                 cel_mod = model.Celerite_GP_Model(self.mod, 0)
                     
                 # Matern-3/2 parameters
-                log_sig = param_values['gp_log_sigma']
+                log_sig = mod_param_values['gp_log_sigma']
 
                 if 'gp_rho' in selected_params:
-                    log_rho = np.log(param_values['gp_rho'])
+                    log_rho = np.log(mod_param_values['gp_rho'])
                 elif 'gp_log_rho' in selected_params:
-                    log_rho = param_values['gp_log_rho']
+                    log_rho = mod_param_values['gp_log_rho']
 
                 # DDSHO parameters
                 gp_log_Q = np.log(2**-0.5)
-                log_omega0 = param_values['gp_log_omega0']
+                log_omega0 = mod_param_values['gp_log_omega0']
 
                 if 'gp_log_S0'in selected_params:
-                    log_S0 = param_values['gp_log_S0']
+                    log_S0 = mod_param_values['gp_log_S0']
                 elif 'gp_log_omega04_S0' in selected_params:
-                    log_S0 = param_values['gp_log_omega04_S0'] - (4 * log_omega0)    
+                    log_S0 = mod_param_values['gp_log_omega04_S0'] - (4 * log_omega0)    
                 elif 'gp_log_omega0_S0' in selected_params:
-                    log_S0 = param_values['gp_log_omega0_S0'] - log_omega0
+                    log_S0 = mod_param_values['gp_log_omega0_S0'] - log_omega0
     
                 # Make fake errors (mimicking OGLE photon noise)
                 flux0 = 4000.0
@@ -1490,7 +1485,7 @@ class Dashboard(Viewer):
             self.dashboard_layout.visible = False
             
         else:
-            self.settings_tabs.update_table_and_checks()
+            self.settings_tabs.set_default_table_and_checkboxes()
             self.settings_tabs.update_sliders()
             self.dashboard_layout.visible = True
             

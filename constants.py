@@ -1,3 +1,9 @@
+
+################################################
+# Packages
+################################################
+import pandas as pd
+
 ################################################
 # BAGLE Configurations
 ################################################
@@ -174,6 +180,9 @@ DEFAULT_RANGES = {
     'xS0_sec': ('arcsec', None, None, None, None)
 }
 
+DEFAULT_DF = pd.DataFrame.from_dict(DEFAULT_RANGES, orient = 'index')
+DEFAULT_DF.columns = ['Units', 'Value', 'Min', 'Max', 'Step']
+DEFAULT_DF.index.name = 'Parameter'
 
 ################################################
 # Page Configurations and Component Styles
@@ -211,11 +220,11 @@ FONTSIZES = {
     'btn': '0.75rem',
     'slider': '0.8rem',
     'tablr_title': '0.75rem',
-    'tablr_txt': '0.75rem',
+    'tablr_txt': '0.82rem',
     'tabs_txt': '0.8rem',
     'checkbox_txt': '0.7rem',
     'error_title': '1.5rem',
-    'error_txt': '1.4rem',
+    'error_txt': '1.2rem',
     'tooltip': '0.7rem',
     'summary_txt': '0.95rem',
     'plot_axes_ticks': 10,
