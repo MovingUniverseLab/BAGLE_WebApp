@@ -5,7 +5,7 @@ import numpy as np
 import itertools
 import plotly.graph_objects as go
 
-import constants
+from app_utils import constants
 
 
 ################################################

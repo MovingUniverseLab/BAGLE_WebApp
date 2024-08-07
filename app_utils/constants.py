@@ -4,6 +4,7 @@
 ################################################
 import pandas as pd
 
+
 ################################################
 # BAGLE Configurations
 ################################################
@@ -214,7 +215,7 @@ HTML_FONTFAMILY = 'Helvetica'
 FONTSIZES = {
     'page_title':' 1.6rem',
     'header': '1.4rem',
-    'paramztn_error': '1.6rem',
+    'paramztn_error': '1.2rem',
     'dropdown': '0.75rem',
     'plus': '0.8rem',
     'btn': '0.75rem',
@@ -222,6 +223,7 @@ FONTSIZES = {
     'tablr_title': '0.75rem',
     'tablr_txt': '0.82rem',
     'tabs_txt': '0.8rem',
+    'checkbox_title': '1.2rem',
     'checkbox_txt': '0.7rem',
     'error_title': '1.5rem',
     'error_txt': '1.2rem',
@@ -377,7 +379,7 @@ BASE_PLOTBOX_STYLE = {
 
 }
 
-SINGLE_PLOTBOX_STYLE = {
+EXPANDED_PLOTBOX_STYLE = {
     'background':CLRS['secondary'],
     'border': 'white solid 0.08rem', 
     'height': '100%',
