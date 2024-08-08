@@ -16,7 +16,7 @@ from app_components import indicators, paramztn_select, settings_tabs
 
 
 ################################################
-# Dashboard - Plots
+# Dashboard - Plot Panel
 ################################################
 class PlotPanel(Viewer):
     paramztn_info = param.ClassSelector(class_ = paramztn_select.ParamztnSelect)
@@ -260,36 +260,36 @@ class PlotPanel(Viewer):
                                     num = self.settings_info.param_sliders['Num_pts'].value)
             
             # Check for bad parameter combination (e.g. dL > dS)  
-            # try:
+            try:
                 # Check if 'Num_pts' slider is disabled
                     # Note: this assumes that the 'Num_pts' slider will never cause an exception, which should be true
-            if self.settings_info.param_sliders['Num_pts'].disabled == True:
-                self.settings_info.set_slider_errored_layout(undo = True)
+                if self.settings_info.param_sliders['Num_pts'].disabled == True:
+                    self.settings_info.set_slider_errored_layout(undo = True)
 
-            # Set model
-            self.mod = getattr(model, self.paramztn_info.selected_paramztn)(**self.settings_info.mod_param_values)
+                # Set model
+                self.mod = getattr(model, self.paramztn_info.selected_paramztn)(**self.settings_info.mod_param_values)
 
-            # Check if throttled Num_pts was the event
-            if (event != ()) and (event[0].obj.name == self.settings_info.param_sliders['Num_pts'].name):
-                self.set_loading_layout()
-            
-            # Check if parameter sliders are throttled
-            elif self.settings_info.throttled == True:
-                self.set_loading_layout()
+                # Check if throttled Num_pts was the event
+                if (event != ()) and (event[0].obj.name == self.settings_info.param_sliders['Num_pts'].name):
+                    self.set_loading_layout()
+                
+                # Check if parameter sliders are throttled
+                elif self.settings_info.throttled == True:
+                    self.set_loading_layout()
 
-            # Update photometry
-            # Note: there are currently no extra photometry traces from phot_checkbox
-                # I'm including GP samples as a main trace here, despite its dependency on 'Num_samps'
-            self._update_main_phot_traces()
-            self._update_phot_plots()
+                # Update photometry
+                # Note: there are currently no extra photometry traces from phot_checkbox
+                    # I'm including GP samples as a main trace here, despite its dependency on 'Num_samps'
+                self._update_main_phot_traces()
+                self._update_phot_plots()
 
-            # Update astrometry
-            self._update_main_ast_traces()
-            self._update_extra_ast_traces()
-            self._update_ast_plots()
+                # Update astrometry
+                self._update_main_ast_traces()
+                self._update_extra_ast_traces()
+                self._update_ast_plots()
 
-            # except:
-            #     self.settings_info.set_slider_errored_layout(undo = False)
+            except:
+                self.settings_info.set_slider_errored_layout(undo = False)
 
     ########################
     # Photometry Methods
@@ -321,7 +321,7 @@ class PlotPanel(Viewer):
                     log_rho = mod_param_values['gp_log_rho']
 
                 # DDSHO parameters
-                gp_log_Q = np.log(2**-0.5)
+                log_Q = np.log(2**-0.5)
                 log_omega0 = mod_param_values['gp_log_omega0']
 
                 if 'gp_log_S0'in selected_params:
@@ -342,7 +342,7 @@ class PlotPanel(Viewer):
 
                 # Make GP model
                 m32 = celerite.terms.Matern32Term(log_sig, log_rho)
-                sho = celerite.terms.SHOTerm(log_S0, gp_log_Q, log_omega0)
+                sho = celerite.terms.SHOTerm(log_S0, log_Q, log_omega0)
                 jitter = celerite.terms.JitterTerm(np.log(np.average(mag_obs_err)))
                 kernel = m32 + sho + jitter
 
@@ -350,7 +350,7 @@ class PlotPanel(Viewer):
                 gp.compute(self.time, mag_obs_err)
                 self.gp = gp
 
-                # Get prior mean. Note that mag_obs = mod.get_photometry(time) for a nonGP, PSPL model
+                # Get prior mean. Note that mag_obs = mod.get_photometry(time) from a nonGP, PSPL model
                 self.phot_traces['gp_prior'].update_traces(mag_obs, self.time)
 
                 # Get predictive mean

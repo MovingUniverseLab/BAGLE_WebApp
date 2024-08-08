@@ -6,7 +6,7 @@ from panel.viewable import Viewer
 import param
 
 from app_utils import constants
-from app_components import mod_select, paramztn_select, settings_tabs, param_summary, plot_panel
+from app_components import mod_select, paramztn_select, settings_tabs, param_summary, code_panel, plot_panel
 
 
 ################################################
@@ -39,10 +39,7 @@ class Dashboard(Viewer):
         self.plot_panel = plot_panel.PlotPanel(paramztn_info = self.paramztn_info, settings_info = self.settings_tabs)
 
         # Code section
-        self.code_panel = pn.FlexBox(
-            sizing_mode = 'stretch_both',
-            styles = {'background':constants.CLRS['secondary'], 'border':'solid white 0.08rem'},
-        )
+        self.code_panel = code_panel.CodePanel(paramztn_info = self.paramztn_info, settings_info = self.settings_tabs)
 
         self.main_row = pn.FlexBox(
             self.plot_panel,
@@ -82,7 +79,7 @@ class Dashboard(Viewer):
         # Set label for summary
         db_components['summary'] = self.param_summary.summary_layout
 
-        db_components['code'] = self.code_panel
+        db_components['code'] = self.code_panel.code_layout
 
         return db_components
     
@@ -220,9 +217,10 @@ class BAGLECalc(Viewer):
             align_items = 'center',
             align_content = 'center',
             styles = {'width': '100%', 
-                    'min-width':'1000px',
-                    'max-width':'2500px',
-                    'height':'fit-content'}
+                      'min-width':'1000px',
+                      'max-width':'2500px',
+                      'height':'fit-content',
+                      'overflow':'scroll'}
         )
 
     def __panel__(self):
@@ -230,7 +228,8 @@ class BAGLECalc(Viewer):
         return pn.Row(
             pn.HSpacer(),
             self.page_content,
-            pn.HSpacer()
+            pn.HSpacer(),
+            styles = {'overflow-y':'hidden', 'overflow-x':'scroll'}
         )
     
 

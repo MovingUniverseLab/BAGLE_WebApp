@@ -451,7 +451,6 @@ class SettingsTabs(Viewer):
             # Update if slider already exists
             if param in self.param_sliders.keys():
                 # Unwatch before updating to prevent multiple repeated watchers (memory leaks)
-                # self.param_sliders[param].param.unwatch(self.slider_watchers[param])
                 self.param_sliders[param].param.update(value = current_val, 
                                                        start = min_val, 
                                                        end = max_val,
