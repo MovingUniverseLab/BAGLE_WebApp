@@ -34,12 +34,14 @@ class Dashboard(Viewer):
                                     gap = '0.5%',
                                     flex_wrap = 'nowrap',
                                     styles = {'height':'35%'})
+
+        # Note: ordering of code section and plot section here will determine which one updates first
+        
+        # Code section
+        self.code_panel = code_panel.CodePanel(paramztn_info = self.paramztn_info, settings_info = self.settings_tabs)
         
         # Plot section
         self.plot_panel = plot_panel.PlotPanel(paramztn_info = self.paramztn_info, settings_info = self.settings_tabs)
-
-        # Code section
-        self.code_panel = code_panel.CodePanel(paramztn_info = self.paramztn_info, settings_info = self.settings_tabs)
 
         self.main_row = pn.FlexBox(
             self.plot_panel,

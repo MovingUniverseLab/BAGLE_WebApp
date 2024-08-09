@@ -143,18 +143,18 @@ class CodePanel(Viewer):
                 gp = celerite.GP(kernel, mean = cel_mod, fit_mean = True)
                 gp.compute(t, mag_obs_err)
 
-                # Make fake photometry data for prior mean og GP
+                # Make fake photometry data for prior mean of GP
                 mag_obs_corr = gp.sample(size = 1)[0]
 
                 # GP Predictive Mean
                 gp_pred_mean = gp.predict(mag_obs_corr, return_cov = False)
 
                 # GP Prior Mean.  
-                    mag_obs = mod.get_photometry(time) from a nonGP, PSPL model
+                    # Note: mag_obs = mod.get_photometry(time) from a nonGP, PSPL model
                 gp_prior_mean = mag_obs
 
                 # GP Prior Samples
-                    shape is [GP sample, time]
+                    # shape is [GP sample, time]
                 gp_samps = gp.sample(size = {num_samps})
             '''
 
@@ -196,13 +196,13 @@ class CodePanel(Viewer):
             ast_str = '''
                 # Point-Lens Astrometry
                     # shape is [time, RA/Dec]
-                lens = mod.get_lens_astrometry(t)
+                lens_ast = mod.get_lens_astrometry(t)
             '''
         elif 'BL' in selected_paramztn:
             ast_str = '''
                 # Binary-lens Astrometry
                     # shape is [lens, time, RA/Dec]
-                lens = mod.get_resolved_lens_astrometry(t)
+                lens_ast = mod.get_resolved_lens_astrometry(t)
             '''
 
         return ast_str
