@@ -4,7 +4,7 @@
 import re
 from functools import partial
 
-from BAGLE_Microlensing.src.bagle import model
+from bagle import model
 
 import panel as pn
 from panel.viewable import Viewer

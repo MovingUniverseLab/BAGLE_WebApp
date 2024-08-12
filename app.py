@@ -5,7 +5,7 @@ import panel as pn
 from panel.viewable import Viewer
 import param
 
-from app_utils import constants
+from app_utils import constants, indicators
 from app_components import mod_select, paramztn_select, settings_tabs, param_summary, code_panel, plot_panel
 
 
@@ -34,12 +34,14 @@ class Dashboard(Viewer):
                                     gap = '0.5%',
                                     flex_wrap = 'nowrap',
                                     styles = {'height':'35%'})
+
+        # Note: ordering of code section and plot section here will determine which one updates first
+        
+        # Code section
+        self.code_panel = code_panel.CodePanel(paramztn_info = self.paramztn_info, settings_info = self.settings_tabs)
         
         # Plot section
         self.plot_panel = plot_panel.PlotPanel(paramztn_info = self.paramztn_info, settings_info = self.settings_tabs)
-
-        # Code section
-        self.code_panel = code_panel.CodePanel(paramztn_info = self.paramztn_info, settings_info = self.settings_tabs)
 
         self.main_row = pn.FlexBox(
             self.plot_panel,
@@ -52,17 +54,9 @@ class Dashboard(Viewer):
         # Entire dashboard layout
         self.db_components = self.set_db_components()
         self.dashboard_layout = pn.FlexBox(
-            self.main_row,
-            self.param_row,
             gap = '1%',
             flex_direction = 'column',
-            visible = False,
-            styles = {'margin-left':'1%',
-                        'margin-right':'1%',
-                        'min-height':'500px',
-                        'max-height':'1500px',
-                        'height':'100vh',
-                        'width': '98%'}
+            align_content = 'center'
         )
         
         # Add dependency of checkbox and layout
@@ -85,17 +79,30 @@ class Dashboard(Viewer):
     
     @pn.depends('paramztn_info.selected_paramztn', watch = True)
     def _hide_show(self):
+        '''
+        Note: Use .clear() and populate the dashboard instead of .visible = True/False. 
+              This is because scroll-bar resets and other styling updates for components don't seem to work when .visible = False.7
+        '''
         if self.paramztn_info.selected_paramztn == None:
-            self.dashboard_layout.visible = False
+            self.dashboard_layout.clear()
+            self.dashboard_layout.styles = {}
             
         else:
-            self.settings_tabs.set_default_table_and_checkboxes()
-            self.settings_tabs.update_sliders()
-            self.dashboard_layout.visible = True
-            
-    def _update_layout(self, *event):
-        self.settings_tabs.set_base_layout()
+            # Note: 'set_default_tabs' leads to 'trigger_param_change', which will update everything else (e.g. plots, summary table, etc.)
+            # Note: 'selected_paramztn' dependency of set_default_tabs could also be put in settings_tabs.py, 
+                # but I chose to put it here to update everything before dashboard gets populated
+            self.settings_tabs.set_default_tabs()
+            self.dashboard_layout.styles = {
+                'margin-left':'1%',
+                'margin-right':'1%',
+                'min-height':'500px',
+                'max-height':'1500px',
+                'height':'100vh',
+                'width': '98%'
+            }
+            self.dashboard_layout.objects = [self.main_row, self.param_row]
 
+    def _update_layout(self, *event):
         unchecked_components = set(self.db_components.keys()) - set(self.settings_tabs.dashboard_checkbox.value)
         checked_plots = list(set(self.settings_tabs.dashboard_checkbox.value) - {'summary', 'code'})
 
@@ -173,7 +180,7 @@ class BAGLECalc(Viewer):
             value = 'Model:', 
             align = 'end',
             styles = {'font-size': constants.FONTSIZES['header'], 
-                        'font-weight':'550'}
+                      'font-weight':'550', 'margin-bottom':'1rem'}
         )
         
         # Parameterization Header
@@ -181,7 +188,7 @@ class BAGLECalc(Viewer):
             value = f'Parameterization:', 
             align = 'end',
             styles = {'font-size':constants.FONTSIZES['header'],
-                    'font-weight':'550'}
+                      'font-weight':'550', 'margin-top':'0'}
         )
     
         self.header_col = pn.Column(

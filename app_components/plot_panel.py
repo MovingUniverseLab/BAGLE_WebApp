@@ -4,15 +4,15 @@
 import numpy as np
 import plotly.graph_objects as go
 
-from BAGLE_Microlensing.src.bagle import model
+from bagle import model
 import celerite
 
 import panel as pn
 from panel.viewable import Viewer
 import param
 
-from app_utils import traces, constants
-from app_components import indicators, paramztn_select, settings_tabs
+from app_utils import indicators, traces, constants
+from app_components import paramztn_select, settings_tabs
 
 
 ################################################
@@ -162,8 +162,8 @@ class PlotPanel(Viewer):
             gap = f'{2 * (50 - constants.PLOT_WIDTH)}%',
             sizing_mode = 'stretch_both',
             styles = {'overflow':'scroll', 
-                      'border':'white solid 0.01rem', 
-                      'background':constants.CLRS['secondary']}
+                      'border':'white solid 0.01rem',
+                      'border-top':'transparent', 'border-bottom':'transparent'}
         )
     
         # Define dependencies
@@ -253,7 +253,7 @@ class PlotPanel(Viewer):
         # Note: '*event' is needed for 'Num_pts' watcher
     
         # Note: lock needed to guard against Num_pts slider reset because trigger_param_change also triggers the update
-            # See chain: set_default_table_and_checkboxes => update_sliders => _update_param_values in settings_tabs.SettingsTabs class
+            # See chain: set_default_tabs => _update_sliders => _update_param_values in settings_tabs.SettingsTabs class
         if self.settings_info.lock_trigger == False:
             self.time = np.linspace(start = self.settings_info.param_sliders['Time'].start, 
                                     stop = self.settings_info.param_sliders['Time'].end, 
@@ -264,7 +264,7 @@ class PlotPanel(Viewer):
                 # Check if 'Num_pts' slider is disabled
                     # Note: this assumes that the 'Num_pts' slider will never cause an exception, which should be true
                 if self.settings_info.param_sliders['Num_pts'].disabled == True:
-                    self.settings_info.set_slider_errored_layout(undo = True)
+                    self.settings_info.set_param_errored_layout(undo = True)
 
                 # Set model
                 self.mod = getattr(model, self.paramztn_info.selected_paramztn)(**self.settings_info.mod_param_values)
@@ -289,7 +289,7 @@ class PlotPanel(Viewer):
                 self._update_ast_plots()
 
             except:
-                self.settings_info.set_slider_errored_layout(undo = False)
+                self.settings_info.set_param_errored_layout(undo = False)
 
     ########################
     # Photometry Methods
@@ -324,13 +324,13 @@ class PlotPanel(Viewer):
                 log_Q = np.log(2**-0.5)
                 log_omega0 = mod_param_values['gp_log_omega0']
 
-                if 'gp_log_S0'in selected_params:
+                if 'gp_log_S0' in selected_params:
                     log_S0 = mod_param_values['gp_log_S0']
                 elif 'gp_log_omega04_S0' in selected_params:
                     log_S0 = mod_param_values['gp_log_omega04_S0'] - (4 * log_omega0)    
                 elif 'gp_log_omega0_S0' in selected_params:
                     log_S0 = mod_param_values['gp_log_omega0_S0'] - log_omega0
-    
+
                 # Make fake errors (mimicking OGLE photon noise)
                 flux0 = 4000.0
                 mag0 = 19.0
@@ -340,10 +340,16 @@ class PlotPanel(Viewer):
                 flux_obs_err = flux_obs ** 0.5
                 mag_obs_err = 1.087 / flux_obs_err
 
+                # Jitter term parameters
+                if 'gp_log_jit_sigma' in selected_params:
+                    log_jit_sigma = mod_param_values['gp_log_jit_sigma']
+                else: 
+                    log_jit_sigma = np.log(np.average(mag_obs_err))
+                    
                 # Make GP model
                 m32 = celerite.terms.Matern32Term(log_sig, log_rho)
                 sho = celerite.terms.SHOTerm(log_S0, log_Q, log_omega0)
-                jitter = celerite.terms.JitterTerm(np.log(np.average(mag_obs_err)))
+                jitter = celerite.terms.JitterTerm(log_jit_sigma)
                 kernel = m32 + sho + jitter
 
                 gp = celerite.GP(kernel, mean = cel_mod, fit_mean = True)

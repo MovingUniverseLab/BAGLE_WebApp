@@ -8,8 +8,8 @@ import panel as pn
 from panel.viewable import Viewer
 import param
 
-from app_utils import constants
-from app_components import indicators, paramztn_select, settings_tabs
+from app_utils import constants, indicators
+from app_components import paramztn_select, settings_tabs
 
 
 ################################################
@@ -19,9 +19,6 @@ class ParamSummary(Viewer):
     paramztn_info = param.ClassSelector(class_ = paramztn_select.ParamztnSelect)
     settings_info = param.ClassSelector(class_ = settings_tabs.SettingsTabs)
 
-    #######################
-    # Panel Components
-    #######################
     def __init__(self, **params):
         # Box for parameter summaries (model and derived)
         self.mod_pane = pn.pane.HTML(styles = {'color':'white', 'max-height':'min-content', 'padding':'0.5rem'})
@@ -44,10 +41,13 @@ class ParamSummary(Viewer):
         )
     
         super().__init__(**params)
+    
+    @pn.depends('paramztn_info.selected_paramztn', watch = True)
+    def reset_scroll(self):
+        self.summary_layout.clear()
+        self.summary_layout.objects = [self.summary_content]
+        
 
-    #######################
-    # Methods
-    #######################
     @pn.depends('settings_info.dashboard_checkbox.value', 'settings_info.trigger_param_change', watch = True)
     def update_summary(self):
         if (self.settings_info.lock_trigger == False) and ('summary' in self.settings_info.dashboard_checkbox.value):
@@ -120,7 +120,7 @@ class ParamSummary(Viewer):
 
             if 'indicator' in self.summary_layout.objects[0].name:
                 self.summary_layout.objects = [self.summary_content]
-
+            
     @pn.depends('settings_info.error_trigger', watch = True)
     def errored_layout(self):
         self.summary_layout.objects = [indicators.error]

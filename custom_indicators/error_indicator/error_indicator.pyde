@@ -24,9 +24,11 @@ for pt in init_pts:
 
 # Colors for page
 clrs = {
-    'main': '#2b3035',
-    'sides': ('#ff3333', '#ff0000', '#cc0000')
+    'bg_dark': '#2b3035',
+    'sides_dark': ('#ff3333', '#ff0000', '#cc0000')
 }
+
+theme = 'dark'
 
 ##########################################
 # Setup and Drawing
@@ -38,7 +40,7 @@ def setup():
 def draw():
     global angle
     
-    background(clrs['main'])
+    background(clrs['bg_' + theme])
     strokeWeight(1)
     
     # Translate from top-left to better show drawing
@@ -65,14 +67,14 @@ def draw():
             idx1 = i
             idx2 = (i + 1) % num_strokes
     
-            stroke(clrs['sides'][i])
+            stroke(clrs['sides_' + theme][i])
             line(stroke_pts[idx1][0], stroke_pts[idx1][1], 
                  stroke_pts[idx2][0], stroke_pts[idx2][1])
             
         popMatrix()
 
     # This will save 360 frames
-    # saveFrame('frames/img_####.png')
+    saveFrame('frames_' + theme + '/img_####.png')
     
     angle += 2
     if angle >= 360:

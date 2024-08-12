@@ -7,8 +7,8 @@ import panel as pn
 from panel.viewable import Viewer
 import param
 
-from app_utils import constants
-from app_components import indicators, paramztn_select, settings_tabs
+from app_utils import constants, indicators
+from app_components import paramztn_select, settings_tabs
 
 
 ################################################
@@ -46,7 +46,7 @@ class CodePanel(Viewer):
         )
 
         self.code_layout = pn.FlexBox(
-            objects = [self.code_display],
+            self.code_display,
             sizing_mode = 'stretch_both',
             justify_content = 'center',
             align_content = 'center',
@@ -69,6 +69,11 @@ class CodePanel(Viewer):
     @pn.depends('settings_info.error_trigger', watch = True)
     def set_errored_layout(self):
         self.code_layout.objects = [indicators.error]
+
+    @pn.depends('paramztn_info.selected_paramztn', watch = True)
+    def reset_scroll(self):
+        self.code_layout.clear()
+        self.code_layout.objects = [self.code_display]
 
     def get_phot_code(self):
         if 'GP' not in self.paramztn_info.selected_paramztn:
@@ -104,6 +109,12 @@ class CodePanel(Viewer):
             elif 'gp_log_omega0_S0' in selected_params:
                 log_S0 = "mod_params['gp_log_omega0_S0'] - log_omega0"
             
+            # Jitter term parameters
+            if 'gp_log_jit_sigma' in selected_params:
+                log_jit_sigma = "mod_param_values['gp_log_jit_sigma']"
+            else: 
+                log_jit_sigma = "np.log(np.average(mag_obs_err))"
+
             num_samps = self.settings_info.param_sliders['Num_samps'].value
             
             phot_code = f'''
@@ -137,24 +148,24 @@ class CodePanel(Viewer):
                 # Make GP model
                 m32 = celerite.terms.Matern32Term(log_sig, log_rho)
                 sho = celerite.terms.SHOTerm(log_S0, log_Q, log_omega0)
-                jitter = celerite.terms.JitterTerm(np.log(np.average(mag_obs_err)))
+                jitter = celerite.terms.JitterTerm({log_jit_sigma})
                 kernel = m32 + sho + jitter
 
                 gp = celerite.GP(kernel, mean = cel_mod, fit_mean = True)
                 gp.compute(t, mag_obs_err)
 
-                # Make fake photometry data for prior mean og GP
+                # Make fake photometry data for prior mean of GP
                 mag_obs_corr = gp.sample(size = 1)[0]
 
                 # GP Predictive Mean
                 gp_pred_mean = gp.predict(mag_obs_corr, return_cov = False)
 
                 # GP Prior Mean.  
-                    mag_obs = mod.get_photometry(time) from a nonGP, PSPL model
+                    # Note: mag_obs = mod.get_photometry(time) from a nonGP, PSPL model
                 gp_prior_mean = mag_obs
 
                 # GP Prior Samples
-                    shape is [GP sample, time]
+                    # shape is [GP sample, time]
                 gp_samps = gp.sample(size = {num_samps})
             '''
 
@@ -196,13 +207,13 @@ class CodePanel(Viewer):
             ast_str = '''
                 # Point-Lens Astrometry
                     # shape is [time, RA/Dec]
-                lens = mod.get_lens_astrometry(t)
+                lens_ast = mod.get_lens_astrometry(t)
             '''
         elif 'BL' in selected_paramztn:
             ast_str = '''
                 # Binary-lens Astrometry
                     # shape is [lens, time, RA/Dec]
-                lens = mod.get_resolved_lens_astrometry(t)
+                lens_ast = mod.get_resolved_lens_astrometry(t)
             '''
 
         return ast_str
@@ -237,7 +248,7 @@ class CodePanel(Viewer):
             ast_code += textwrap.dedent(code_str)
 
         return ast_code
-    
+
     @pn.depends('settings_info.trigger_param_change', 'settings_info.dashboard_checkbox.value',
                 'settings_info.phot_checkbox.value', 'settings_info.ast_checkbox.value', watch = True)
     def _update_code_str(self, *event):
@@ -251,7 +262,7 @@ class CodePanel(Viewer):
                     # Packages
                     ################################################
                     import numpy as np
-                    from BAGLE_Microlensing.src.bagle import model
+                    from bagle import model
 
                     # Note: celerite is only used for Gaussian Process
                     import celerite
@@ -321,6 +332,8 @@ class CodePanel(Viewer):
                     self.code_layout.objects = [self.code_display]
 
                 self.code_display.value = py_code
+
+        
 
     def __panel__(self):
         return self.code_layout

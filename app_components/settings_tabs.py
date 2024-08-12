@@ -39,9 +39,6 @@ class SettingsTabs(Viewer):
     # Dictionary for model parameter values
     mod_param_values = param.Dict(default = {})
     
-    # Pandas dataframe for parameter values
-    param_df = param.DataFrame()
-    
     # Checkbox for dashboard panes
     db_options_dict = {
         'Phot': {'Photometry': 'phot', 
@@ -63,6 +60,9 @@ class SettingsTabs(Viewer):
     }
     
     def __init__(self, **params):
+        ###########################################
+        # Tab 1 - Sliders
+        ###########################################
         # Dictionary to store all sliders and watchers. 
             # Note: This is needed so that we don't always create new sliders and lag the page from memory leaks.
         self.param_sliders, self.slider_watchers = {}, {}
@@ -100,9 +100,9 @@ class SettingsTabs(Viewer):
         self.mod_sliders = pn.FlexBox(
             flex_wrap = 'wrap', 
             styles = {'padding-bottom':'0.5rem', 
-            'max-height':'fit-content'}
+                      'max-height':'fit-content'}
         )
-    
+
         # Layout for sliders that are present in all models
         self.const_sliders = pn.FlexBox(
             self.param_sliders['Time'], 
@@ -135,22 +135,40 @@ class SettingsTabs(Viewer):
             objects = self.sliders_content,
             name = 'Parameter Sliders',
             styles = {'overflow':'scroll', 
-                        'height':'100%', 
-                        'border-top':'white solid 0.08rem'}
+                      'height':'100%', 
+                      'border-top':'white solid 0.08rem'}
         )
 
-        # Table for slider range settings
-        self.range_table = pn.widgets.Tabulator(
+        ###########################################
+        # Tab 2 & 3 - Parameter and Slider Tables
+        ###########################################
+        # Table for parameter values
+        self.param_table = pn.widgets.Tabulator(
+            name = 'Parameter Values',
+            text_align = 'left', layout = 'fit_columns',
+            editors = {'Units': None}, 
+            sizing_mode = 'stretch_both',
+            stylesheets = [constants.TABLTR_STYLE]
+        )
+
+        # Table for slider settings
+        self.slider_table = pn.widgets.Tabulator(
             name = 'Slider Settings',
             text_align = 'left', layout = 'fit_columns',
             editors = {'Units': None}, 
             sizing_mode = 'stretch_both',
             stylesheets = [constants.TABLTR_STYLE]
         )
-    
+
+        # List containing all tables for easy disabling
+        self.all_tables = [self.param_table, self.slider_table]
+
         # HTML message for errored slider range settings
-        self.error_msg = pn.pane.HTML(object = None, name = 'ERRORED SLIDERS')
+        self.slider_error_msg = pn.pane.HTML(object = None, name = 'ERRORED SLIDERS')
     
+        ###########################################
+        # Tab 4 - Checkboxes
+        ###########################################
         self.dashboard_settings_header = pn.pane.HTML(
             object = f'''
                 <div style="text-align:center">
@@ -241,6 +259,14 @@ class SettingsTabs(Viewer):
             align = 'center'
         )
 
+        # List containing all checkboxes for easy disabling
+        self.all_checkboxes = [
+            self.dashboard_checkbox,
+            self.genrl_plot_checkbox,
+            self.phot_checkbox,
+            self.ast_checkbox
+        ]
+
         # Layout for settings tab
         self.all_settings = pn.FlexBox(
             self.dashboard_settings, 
@@ -251,15 +277,15 @@ class SettingsTabs(Viewer):
         )
             
         self.settings_layout = pn.Column(
-            self.performance_note,
-            pn.layout.Divider(),
-            self.all_settings,
             name = 'Other Settings',
             styles = {'overflow':'scroll'}
         )
 
-        # Links tab
-        self.github_links = pn.pane.HTML(
+        ###########################################
+        # Tab 5 - References/Citations
+        ###########################################
+        # Reference/citations tab
+        self.refs_cites_html = pn.pane.HTML(
             object = f'''
                 <span style="font-size:{constants.FONTSIZES['header']}">
                     <b><u>GitHub Repositories:</u></b>
@@ -274,43 +300,56 @@ class SettingsTabs(Viewer):
                     <li><a href="https://github.com/MovingUniverseLab/BAGLE_Microlensing/tree/dev" target="_blank">BAGLE Microlensing (Dev Branch)</a></li>
                 </ul>
             ''',
-            name = 'Links', styles = {'color':'white', 'width':'95%', 'font-family':constants.HTML_FONTFAMILY}
+            styles = {'color':'white', 'width':'95%', 'font-family':constants.HTML_FONTFAMILY}
         )
 
-        # Layout for entire tab section
+        self.refs_cites = pn.FlexBox(name = 'References/Citations', sizing_mode = 'stretch_both', styles = {'overflow':'scroll'})
+
+        ###########################################
+        # Layout + Dependencies
+        ###########################################
         self.tabs_layout = pn.Tabs(
             self.sliders_layout,
-            self.range_table, 
+            self.param_table, 
+            self.slider_table, 
             self.settings_layout, 
-            self.github_links,
+            self.refs_cites,
             styles = {'border':'white solid 0.08rem', 'background':constants.CLRS['secondary']}
-        )
-    
+            )
 
         super().__init__(**params)
         # set dependencies and on-edit functions
-        self.range_table.on_edit(self._update_param_change)
         self.param_sliders['Num_pts'].param.watch(self._change_slider_throttle, 'value_throttled')
         self.param_sliders['Time'].param.watch(self._update_param_values, 'value')
 
+        self.param_table.on_edit(self._update_param_change)
+        self.slider_table.on_edit(self._update_sliders)
+
+
     def set_base_layout(self):
-        for object in self.tabs_layout.objects:
-            object.visible = True
+        for component in self.all_tables + self.all_checkboxes:
+            component.disabled = False
 
         self.tabs_layout.stylesheets = [constants.BASE_TABS_STYLE]
 
-    def set_slider_errored_layout(self, undo):
+
+    def set_param_errored_layout(self, undo):
         event_slider = self.param_sliders[self.current_param_change]
 
         if undo == False:
             self.tabs_layout.stylesheets = [constants.ERRORED_TABS_STYLE]
             self.tabs_layout.active = 0
 
+            # Disable all parameters except the one causing the error
             for param in self.param_sliders.keys():
                 self.param_sliders[param].disabled = True
             event_slider.param.update(disabled = False, stylesheets = [constants.ERRORED_SLIDER_STYLE])
 
-            self.settings_layout.visible, self.range_table.visible = False, False
+            # Disable all tables and checkboxes
+            self.param_table.disabled = True
+            for cb in self.all_checkboxes:
+                cb.disabled = True
+
             self.error_trigger = not self.error_trigger
 
         else:
@@ -320,35 +359,40 @@ class SettingsTabs(Viewer):
             for param in self.param_sliders.keys():
                 self.param_sliders[param].disabled = False
 
-    @pn.depends('error_msg.object', watch = True)
-    def set_range_errored_layout(self):
-        if self.error_msg.object == None:
+    @pn.depends('slider_error_msg.object', watch = True)
+    def set_slider_errored_layout(self):
+        if self.slider_error_msg.object == None:
             self.set_base_layout()
             self.sliders_layout.objects = self.sliders_content
 
         else:
             self.tabs_layout.stylesheets = [constants.ERRORED_TABS_STYLE]
-            self.sliders_layout.objects = [self.error_msg]
+            self.sliders_layout.objects = [self.slider_error_msg]
 
             self.tabs_layout.active = 0
-            self.settings_layout.visible = False
+
+            # Note: slider table needs to remain enabled to fix error
+            for cb in self.all_checkboxes:
+                cb.disabled = True
+
             self.error_trigger = not self.error_trigger
 
-    def _check_genrl_errors(self, param, default_val, min_val, max_val, step_val):
+    def _check_errors(self, param, param_val, min_val, max_val, step_val):
         error_html = ''''''
-        if np.any(np.isnan([default_val, min_val, max_val, step_val])):
-            error_html += '''<li>Range inputs must be a number.</li>'''     
+        if np.any(np.isnan([param_val, min_val, max_val, step_val])):
+            error_html += '''<li>All inputs must be numbers.</li>'''     
         if (min_val >= max_val):
             error_html += '''<li>The minimum value must be smaller than the maximum value.</li>'''
-        elif ((default_val < min_val) or (default_val > max_val)):
-            error_html += '''<li>The default value is not inside the range.</li>'''
+        elif (param_val < min_val) or (param_val > max_val):
+            if param in ['Time']:
+                error_html += '''<li>Value must be inside range.</li>'''
         if (step_val > (abs(max_val - min_val))):
             error_html += '''<li>The step size cannot be larger than the range size.</li>'''
 
         # Make error message and exit if error exists
         if error_html != '''''':
             error_param = f'''<span style="color:rgb(179, 0, 89);font-weight:bold">{param}</span>'''
-            self.error_msg.object = f'''
+            self.slider_error_msg.object = f'''
                 <span style="color:red; font-size:{constants.FONTSIZES['error_title']};font-family:{constants.HTML_FONTFAMILY}">
                     Errors in {error_param} Slider:
                 </span>
@@ -360,16 +404,17 @@ class SettingsTabs(Viewer):
             # Force the function that called this function to exit
             sys.exit()
 
-    def set_default_table_and_checkboxes(self):
+    def set_default_tabs(self):
+        self.throttled = False
         mod_types = self.paramztn_info.mod_info.type_dict
-        
+        self.set_base_layout()
+
         # Update checkboxes
         # Note: Lock used to not trigger checkbox-related changes
             # This is needed because same changes will trigger through data frame update (leads to 'trigger_param_change')
         self.lock_trigger = True
         
-
-        # # Will be use to empty phot checkbox when more options are added
+        # # Will be used when more options are added
         # self.phot_checkbox.value = []
         # self.phot_settings.visible = False
         
@@ -378,13 +423,13 @@ class SettingsTabs(Viewer):
             # Check if binary-source
             if 'BS' in mod_types['srclens']:  
                 ast_options = {'Show Resolved, Unlensed Astrometry': 'bs_res_unlen',
-                               'Show Resolved Primary Source Images': 'bs_res_len_pri',
-                               'Show Resolved Secondary Source Images': 'bs_res_len_sec',
-                               'Show Position of Lens(es)': 'lens'}
+                            'Show Resolved Primary Source Images': 'bs_res_len_pri',
+                            'Show Resolved Secondary Source Images': 'bs_res_len_sec',
+                            'Show Position of Lens(es)': 'lens'}
             else:
                 ast_options = {'Show Resolved Source Images': 'ps_res_len',
-                               'Show Position of Lens(es)': 'lens'}
-                                               
+                            'Show Position of Lens(es)': 'lens'}
+                                            
             self.ast_checkbox.param.update(options = ast_options, value = [])
             self.ast_settings.visible = True
         
@@ -396,28 +441,40 @@ class SettingsTabs(Viewer):
         db_value = list(set(db_options.values()) - {'ast_ra', 'ast_dec', 'code'})
         self.dashboard_checkbox.param.update(options = db_options, value = db_value)  
         self.genrl_plot_checkbox.param.update(value = ['marker', 'full_trace'])
-
+        
         self.lock_trigger = False
         
-        # Update range data frame
+        # Update tables
         idx_list = ['Time'] + self.paramztn_info.selected_params
-        self.range_table.value = constants.DEFAULT_DF.loc[idx_list]
-
-        # Reset parameter data frame
-        self.param_df = constants.DEFAULT_DF.copy()
+        self.slider_table.value = constants.DEFAULT_SLIDER_DF.loc[idx_list]
+        self.param_table.value = constants.DEFAULT_PARAM_DF.loc[idx_list]
 
         # Reset tab to parameter sliders tab
-        # The scroll of the parameter sliders tab bugs if it directly set with 'active'
+        # The scroll of the parameter sliders tab bugs if it is directly set with 'active'
             # For some reason setting 'active = 1' (or some other tab) first seems to fix this
         self.tabs_layout.active = 1
         self.tabs_layout.active = 0
-        
-    def _update_param_change(self, *event):
-        self.current_param_change = self.range_table.value.index[event[0].row]
-        self.update_sliders()
-    
-    def update_sliders(self):
-        df = self.range_table.value
+
+        # Update sliders
+        self._update_sliders()
+
+        # Resetting scrolls for some tabs
+        self.sliders_layout.clear()
+        self.sliders_layout.objects = self.sliders_content
+
+        self.settings_layout.clear()
+        self.settings_layout.objects = [
+            self.performance_note,
+            pn.layout.Divider(),
+            self.all_settings,
+        ]
+
+        self.refs_cites.clear()
+        self.refs_cites.objects = [self.refs_cites_html]
+
+    def _update_sliders(self, *event):
+        param_df = self.param_table.value
+        slider_df = self.slider_table.value
         selected_paramztn = self.paramztn_info.selected_paramztn
     
         # Note: Lock is needed because initial trace changes will be applied by the initialized param value dictionary (leads to 'trigger_param_change')
@@ -436,15 +493,15 @@ class SettingsTabs(Viewer):
 
         # Create/Update model-related sliders
         for param in (['Time'] + self.paramztn_info.selected_params):
-            units = df.loc[(param, 'Units')]
-            current_val = df.loc[(param, 'Value')]
-            min_val = df.loc[(param, 'Min')]
-            max_val = df.loc[(param, 'Max')]
-            step_val = df.loc[(param, 'Step')]
+            units = param_df.loc[(param, 'Units')]
+            current_val = param_df.loc[(param, 'Value')]
+            min_val = slider_df.loc[(param, 'Min')]
+            max_val = slider_df.loc[(param, 'Max')]
+            step_val = slider_df.loc[(param, 'Step')]
 
             # Check for errors
             try:
-                self._check_genrl_errors(param, current_val, min_val, max_val, step_val)             
+                self._check_errors(param, current_val, min_val, max_val, step_val)             
             except SystemExit:
                 return
         
@@ -484,7 +541,12 @@ class SettingsTabs(Viewer):
         self._change_slider_throttle()
         
         # Clear error message if no errors
-        self.error_msg.object = None
+        self.slider_error_msg.object = None
+
+    def _update_param_change(self, *event):
+        # Note: param_change happens from param_table edits
+        self.current_param_change = self.param_table.value.index[event[0].row]
+        self._update_sliders()
 
     def _update_param_values(self, *event):
         # Note: the '*event' argument is used to set dependency on sliders
@@ -500,10 +562,10 @@ class SettingsTabs(Viewer):
                 self.current_param_change = param_name
 
                 # Change data frame value and range table
-                self.param_df.loc[(param_name, 'Value')] = self.param_sliders[param_name].value
+                param_df = self.param_table.value
+                param_df.loc[(param_name, 'Value')] = self.param_sliders[param_name].value
 
-                idx_list = ['Time'] + self.paramztn_info.selected_params
-                self.range_table.value = self.param_df.loc[idx_list]
+                self.param_table.value = param_df
 
             if (event == ()) or (self.current_param_change != 'Time'):
                 # Update model parameter values

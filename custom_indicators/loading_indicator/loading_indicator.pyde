@@ -18,18 +18,17 @@ init_pt3 = [-l_side/2, -l_side/2 * sqrt(3)]
 init_pts = [init_pt1, init_pt2, init_pt3]
 
 # Offset initial equilateral triangle for radius
-circ_pt = [radius/4 * sqrt(3), radius/4]
-circ_pt2 = [radius * sqrt(3), radius]
-
 for pt in init_pts:
     pt[0] -= radius/2 * sqrt(3)
     pt[1] -= radius/2
 
 # Colors for page
 clrs = {
-    'main': '#2b3035',
-    'sides': ('#80fff4', '#4bffef', '#1affec')
+    'bg_dark': '#2b3035',
+    'sides_dark': ('#80fff4', '#4bffef', '#1affec')
 }
+
+theme = 'dark'
 
 ##########################################
 # Setup and Drawing
@@ -41,7 +40,7 @@ def setup():
 def draw():
     global angle
     
-    background(clrs['main'])
+    background(clrs['bg_' + theme])
     strokeWeight(1)
     
     # Translate from top-left to better show drawing
@@ -68,14 +67,14 @@ def draw():
             idx1 = i
             idx2 = (i + 1) % num_strokes
     
-            stroke(clrs['sides'][i])
+            stroke(clrs['sides_' + theme][i])
             line(stroke_pts[idx1][0], stroke_pts[idx1][1], 
                  stroke_pts[idx2][0], stroke_pts[idx2][1])
             
         popMatrix()
 
     # This will save 360 frames
-    # saveFrame('frames/image####.png')
+    saveFrame('frames_' + theme + '/img_####.png')
     
     angle += 1.8
     if angle >= 360:

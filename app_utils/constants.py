@@ -17,7 +17,7 @@ PSPL = (
     'PSPL_Phot_noPar_GP_Param1', 'PSPL_Phot_noPar_GP_Param2',
     
     'PSPL_Phot_Par_GP_Param1', 'PSPL_Phot_Par_GP_Param1_2', 
-    'PSPL_Phot_Par_GP_Param2', 'PSPL_Phot_Par_GP_Param2_2', 'PSPL_Phot_Par_GP_Param2_3',
+    'PSPL_Phot_Par_GP_Param2', 'PSPL_Phot_Par_GP_Param2_2', 'PSPL_Phot_Par_GP_Param2_3', 'PSPL_Phot_Par_GP_Param2_4', 'PSPL_Phot_Par_GP_Param2_5',
     
     'PSPL_Astrom_Par_Param3', 'PSPL_Astrom_Par_Param4',
     
@@ -30,8 +30,8 @@ PSPL = (
     'PSPL_PhotAstrom_Par_Param4', 'PSPL_PhotAstrom_Par_Param5',
     
     'PSPL_PhotAstrom_Par_GP_Param1', 'PSPL_PhotAstrom_Par_GP_Param2', 
-    'PSPL_PhotAstrom_Par_GP_Param3', 'PSPL_PhotAstrom_Par_GP_Param3_1',
-    'PSPL_PhotAstrom_Par_GP_Param4',
+    'PSPL_PhotAstrom_Par_GP_Param3', 'PSPL_PhotAstrom_Par_GP_Param3_1', 'PSPL_PhotAstrom_Par_GP_Param3_2',
+    'PSPL_PhotAstrom_Par_GP_Param4', 'PSPL_PhotAstrom_Par_GP_Param4_1', 'PSPL_PhotAstrom_Par_GP_Param4_2',
 )
 
 # PSPL + GP currently errored in BAGLE
@@ -99,8 +99,9 @@ DEFAULT_RANGES = {
     'gp_log_omega04_S0': (None, -8.5, -15, 5, 0.1),
     'gp_log_omega0_S0': (None, -10, -15, 5, 0.1),
     'gp_log_rho': ('log(days)', 1.3, -2, 2, 0.1),
-    'gp_log_sigma': (None, -4, -10, 10, 0.1),
     'gp_rho': ('days', 20, 0.01, 100, -0.1),
+    'gp_log_sigma': (None, -4, -10, 5, 0.1),
+    'gp_log_jit_sigma': (None, -4.5, -10, 5, 0.1),
     'log10_thetaE': ('log10(mas)', 0.5, -1, 1, 0.1),
     'mL': ('Msun', 10, 0.1, 100, 0.1),
     'mLp': ('Msun', 10, 0.1, 100, 0.1),
@@ -185,6 +186,10 @@ DEFAULT_DF = pd.DataFrame.from_dict(DEFAULT_RANGES, orient = 'index')
 DEFAULT_DF.columns = ['Units', 'Value', 'Min', 'Max', 'Step']
 DEFAULT_DF.index.name = 'Parameter'
 
+# Default Data frames for slider settinsg and parameter values
+DEFAULT_SLIDER_DF = DEFAULT_DF[['Units','Min', 'Max', 'Step']]
+DEFAULT_PARAM_DF = DEFAULT_DF[['Units', 'Value']]
+
 ################################################
 # Page Configurations and Component Styles
 ################################################
@@ -220,8 +225,8 @@ FONTSIZES = {
     'plus': '0.8rem',
     'btn': '0.75rem',
     'slider': '0.8rem',
-    'tablr_title': '0.75rem',
-    'tablr_txt': '0.82rem',
+    'tablr_title': '0.8rem',
+    'tablr_txt': '0.8rem',
     'tabs_txt': '0.8rem',
     'checkbox_title': '1.2rem',
     'checkbox_txt': '0.7rem',

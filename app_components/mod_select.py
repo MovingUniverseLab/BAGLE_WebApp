@@ -65,7 +65,7 @@ class ModSelect(Viewer):
             objs = np.insert(objs, i, plus) 
             
         
-        mod_layout = pn.Row(objects = list(objs), styles = {'margin-bottom':'0.05rem'})
+        mod_layout = pn.Row(objects = list(objs), styles = {'margin-bottom':'0.5rem'})
         return mod_layout
     
     @pn.depends('srclens_type.value', 'data_type.value', 'par_type.value', 'gp_type.value', watch = True)
