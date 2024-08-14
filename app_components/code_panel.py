@@ -7,7 +7,7 @@ import panel as pn
 from panel.viewable import Viewer
 import param
 
-from app_utils import constants, indicators
+from app_utils import constants, indicators, styles
 from app_components import paramztn_select, settings_tabs
 
 
@@ -21,9 +21,10 @@ class CodePanel(Viewer):
     # Lists for the set of photometry plots and set of astrometry plots selected in plot checkbox
     selected_phot_plots, selected_ast_plots = param.List(), param.List()
     
+    
     def __init__(self, **params):
         super().__init__(**params)
-    
+
         # Variable to store 'Num_samps' slider watcher for wasy unwatching
         self.samps_watcher = None
         
@@ -39,7 +40,7 @@ class CodePanel(Viewer):
         self.code_display = pn.widgets.CodeEditor(
             sizing_mode = 'stretch_both', 
             language = 'python',
-            theme = 'tomorrow_night_eighties',
+            theme = styles.THEMES['code_theme'],
             styles = {'overflow':'visible'},
             disabled = True,
             readonly = True
@@ -50,12 +51,14 @@ class CodePanel(Viewer):
             sizing_mode = 'stretch_both',
             justify_content = 'center',
             align_content = 'center',
-            styles = {'background':constants.CLRS['secondary'], 'border':'solid white 0.08rem'},
+            styles = {'background': styles.CLRS['page_secondary'], 
+                      'border': f'{styles.CLRS["page_border"]} solid 0.08rem'},
         )
         
         # Set dependencies
         self.settings_info.param_sliders['Num_pts'].param.watch(self._update_code_str, 'value')
-    
+ 
+
     @pn.depends('paramztn_info.selected_paramztn', watch = True)
     def set_samps_dependency(self):
         # Unwatch if exists
@@ -66,14 +69,16 @@ class CodePanel(Viewer):
         if (self.paramztn_info.selected_paramztn != None) and ('GP' in self.paramztn_info.selected_paramztn):
             self.samps_watcher = self.settings_info.param_sliders['Num_samps'].param.watch(self._update_code_str, 'value')
 
+
     @pn.depends('settings_info.error_trigger', watch = True)
     def set_errored_layout(self):
         self.code_layout.objects = [indicators.error]
 
-    @pn.depends('paramztn_info.selected_paramztn', watch = True)
+
     def reset_scroll(self):
         self.code_layout.clear()
         self.code_layout.objects = [self.code_display]
+
 
     def get_phot_code(self):
         if 'GP' not in self.paramztn_info.selected_paramztn:
@@ -171,6 +176,7 @@ class CodePanel(Viewer):
 
         return phot_code
     
+
     def get_res_len_str(self):
         selected_paramztn = self.paramztn_info.selected_paramztn
         
@@ -191,6 +197,7 @@ class CodePanel(Viewer):
 
         return ast_str
 
+
     def get_bs_res_unlen_str(self):
         ast_str = '''
         # Resolved, Unlensed Sources
@@ -199,6 +206,7 @@ class CodePanel(Viewer):
         '''
 
         return ast_str
+
 
     def get_lens_str(self):
         selected_paramztn = self.paramztn_info.selected_paramztn
@@ -218,12 +226,13 @@ class CodePanel(Viewer):
 
         return ast_str
     
+
     def get_ast_code(self):
         extra_ast = self.settings_info.ast_checkbox.value.copy()
 
         extra_ast_code = []
         if {'bs_res_len_pri', 'bs_res_len_sec'} <= set(extra_ast):
-            # remove the secondary source key to prevent having repeated data
+            # remove the secondary source key to prevent having repeated data code
             extra_ast.remove('bs_res_len_sec')
 
         for key in extra_ast:
@@ -248,6 +257,7 @@ class CodePanel(Viewer):
             ast_code += textwrap.dedent(code_str)
 
         return ast_code
+
 
     @pn.depends('settings_info.trigger_param_change', 'settings_info.dashboard_checkbox.value',
                 'settings_info.phot_checkbox.value', 'settings_info.ast_checkbox.value', watch = True)
@@ -312,8 +322,8 @@ class CodePanel(Viewer):
                 code_list = [package_code, mod_time_code]
 
                 # Code to get data from model
-                selected_phot_plots = list(set(constants.PHOT_PLOT_NAMES) & set(self.settings_info.dashboard_checkbox.value))
-                selected_ast_plots = list(set(constants.AST_PLOT_NAMES) & set(self.settings_info.dashboard_checkbox.value))
+                selected_phot_plots = list(set(styles.PHOT_PLOT_NAMES) & set(self.settings_info.dashboard_checkbox.value))
+                selected_ast_plots = list(set(styles.AST_PLOT_NAMES) & set(self.settings_info.dashboard_checkbox.value))
                 
                 # Check if photometry is selected in dashboard
                 if (len(selected_phot_plots) != 0):
@@ -333,7 +343,6 @@ class CodePanel(Viewer):
 
                 self.code_display.value = py_code
 
-        
 
     def __panel__(self):
         return self.code_layout

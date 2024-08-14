@@ -2,13 +2,13 @@
 angle = 0
 
 # Radius of circle
-radius = 20
+radius = 40
 
 # Number of triangles
 num_tri = 12
 
 # Initial equilateral triangle side-length
-l_side = 40
+l_side = 80
 
 # (x, y) coordinates of initial equilateral triangle
 # This is a equilateral triangle with lower-right vertex at (0, 0)
@@ -34,14 +34,14 @@ theme = 'dark'
 # Setup and Drawing
 ##########################################
 def setup():
-    size(138, 138)
+    size(278, 278)
     pixelDensity(2)
     
 def draw():
     global angle
     
     background(clrs['bg_' + theme])
-    strokeWeight(1)
+    strokeWeight(1.5)
     
     # Translate from top-left to better show drawing
     translate(width/2, height/2)

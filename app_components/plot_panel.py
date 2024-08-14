@@ -11,7 +11,7 @@ import panel as pn
 from panel.viewable import Viewer
 import param
 
-from app_utils import indicators, traces, constants
+from app_utils import indicators, traces, styles
 from app_components import paramztn_select, settings_tabs
 
 
@@ -30,23 +30,29 @@ class PlotPanel(Viewer):
     main_ast_keys, extra_ast_keys = param.List(default = []), param.List(default = [])
     
     # Labels for plot
-    plot_names = constants.PHOT_PLOT_NAMES + constants.AST_PLOT_NAMES
+    plot_names = styles.PHOT_PLOT_NAMES + styles.AST_PLOT_NAMES
 
     # Tuples for what keys have a time trace, a full trace, or a time marker
-    time_trace_keys = ('non_gp', 'gp_prior', 'gp_predict', 'gp_samps',
-                       'unres_len', 'unres_unlen', 
-                       'ps_res_len',
-                       'bs_res_unlen_pri', 'bs_res_len_pri', 'bs_res_unlen_sec', 'bs_res_len_sec',
-                       'lens')
-    full_trace_keys = ('non_gp', 'gp_prior', 'gp_predict',
-                       'unres_len', 'unres_unlen', 
-                       'bs_res_unlen_pri', 'bs_res_unlen_sec', 
-                       'lens')
-    marker_keys = ('non_gp', 'gp_prior', 'gp_predict',
-                   'unres_len', 'unres_unlen', 
-                   'ps_res_len',
-                   'bs_res_unlen_pri', 'bs_res_len_pri', 'bs_res_unlen_sec', 'bs_res_len_sec',
-                   'lens')
+    time_trace_keys = (
+        'non_gp', 'gp_prior', 'gp_predict', 'gp_samps',
+        'unres_len', 'unres_unlen', 
+        'ps_res_len',
+        'bs_res_unlen_pri', 'bs_res_len_pri', 'bs_res_unlen_sec', 'bs_res_len_sec',
+        'lens'
+    )
+    full_trace_keys = (
+        'non_gp', 'gp_prior', 'gp_predict',
+        'unres_len', 'unres_unlen', 
+        'bs_res_unlen_pri', 'bs_res_unlen_sec', 
+        'lens'
+    )
+    marker_keys = (
+        'non_gp', 'gp_prior', 'gp_predict',
+        'unres_len', 'unres_unlen', 
+        'ps_res_len',
+        'bs_res_unlen_pri', 'bs_res_len_pri', 'bs_res_unlen_sec', 'bs_res_len_sec',
+        'lens'
+    )
 
 
     ########################
@@ -65,23 +71,35 @@ class PlotPanel(Viewer):
         self.phot_traces = {
             'non_gp': traces.Genrl_Phot(
                 group_name = 'Photometry',
-                zorder = 100, show_legend = False,
-                pri_clr = 'red', sec_clr = 'rgb(255, 77, 77)', 
-                time_width = 2, full_width  = 1.5, marker_size = 10
+                zorder = 100, 
+                show_legend = False,
+                pri_clr = 'red', 
+                sec_clr = 'rgb(255, 77, 77)', 
+                time_width = 2, 
+                full_width  = 1.5, 
+                marker_size = 10
             ),
             
             'gp_prior': traces.Genrl_Phot(
                 group_name = 'GP Prior Mean',
-                zorder = 90, show_legend = True,
-                pri_clr = 'orange', sec_clr = 'rgba(255, 193, 77, 0.8)',
-                time_width = 2, full_width  = 1.5, marker_size = 10
+                zorder = 90, 
+                show_legend = True,
+                pri_clr = 'orange', 
+                sec_clr = 'rgba(255, 193, 77, 0.8)',
+                time_width = 2, 
+                full_width  = 1.5, 
+                marker_size = 10
             ),
             
             'gp_predict': traces.Genrl_Phot(
                 group_name = 'GP Predictive Mean', 
-                zorder = 100, show_legend = True,
-                pri_clr = 'red', sec_clr = 'rgba(255, 77, 77, 0.9)',
-                time_width = 1.4, full_width  = 0.9, marker_size = 10, 
+                zorder = 100, 
+                show_legend = True,
+                pri_clr = 'red', 
+                sec_clr = 'rgba(255, 77, 77, 0.9)',
+                time_width = 1.4, 
+                full_width  = 0.9, 
+                marker_size = 10, 
                 full_dash_style = 'solid'
             ),
             
@@ -95,51 +113,73 @@ class PlotPanel(Viewer):
             'unres_len': traces.Ast_Unres(
                 group_name = 'Unresolved, Lensed Source(s)',
                 zorder = 90,
-                pri_clr = 'red', sec_clr = 'rgb(255, 77, 77)', 
-                time_width = 1.5, full_width  = 1, marker_size = 8
+                pri_clr = 'red', 
+                sec_clr = 'rgb(255, 77, 77)', 
+                time_width = 1.5, 
+                full_width  = 1, 
+                marker_size = 8
             ),
             'unres_unlen': traces.Ast_Unres(
                 group_name = 'Unresolved, Unlensed Source(s)',
                 zorder = 80,
-                pri_clr = 'orange', sec_clr = 'rgb(255, 193, 77)', 
-                time_width = 1.5, full_width  = 1, marker_size = 8
+                pri_clr = 'orange', 
+                sec_clr = 'rgb(255, 193, 77)', 
+                time_width = 1.5, 
+                full_width  = 1, 
+                marker_size = 8
             ),
             
             'ps_res_len': traces.Ast_PS_ResLensed(
                 group_name = 'Resolved, Lensed Source Images',
                 pri_clr = 'yellow',
-                time_width = 1.2, marker_size = 6
+                time_width = 1.2, 
+                marker_size = 6
             ),
             
             'bs_res_unlen_pri': traces.Ast_BS_ResUnlensed(
-                src_idx = 0, group_name = 'Resolved, Unlensed Primary Source',
+                src_idx = 0, 
+                group_name = 'Resolved, Unlensed Primary Source',
                 zorder = 70,
-                pri_clr = 'rgb(0, 134, 149)', sec_clr = 'rgb(0, 184, 204)', 
-                time_width = 2, full_width  = 1.5, marker_size = 8
+                pri_clr = 'rgb(0, 134, 149)', 
+                sec_clr = 'rgb(0, 184, 204)', 
+                time_width = 2, 
+                full_width  = 1.5, 
+                marker_size = 8
             ),
             'bs_res_unlen_sec': traces.Ast_BS_ResUnlensed(
-                src_idx = 1, group_name = 'Resolved, Unlensed Secondary Source',
+                src_idx = 1, 
+                group_name = 'Resolved, Unlensed Secondary Source',
                 zorder = 70,
-                pri_clr = 'rgb(40, 121, 62)', sec_clr = 'rgb(51, 153, 78)', 
-                time_width = 2, full_width  = 1.5, marker_size = 8
+                pri_clr = 'rgb(40, 121, 62)', 
+                sec_clr = 'rgb(51, 153, 78)', 
+                time_width = 2, 
+                full_width  = 1.5, 
+                marker_size = 8
             ),
             
             'bs_res_len_pri': traces.Ast_BS_ResLensed(
-                src_idx = 0, group_name = 'Resolved, Lensed Primary Source',
+                src_idx = 0, 
+                group_name = 'Resolved, Lensed Primary Source',
                 pri_clr = 'rgb(128, 242, 255)',
-                time_width = 1.2, marker_size = 6
+                time_width = 1.2, 
+                marker_size = 6
             ),
             'bs_res_len_sec': traces.Ast_BS_ResLensed(
-                src_idx = 1, group_name = 'Resolved, Lensed Secondary Source',
+                src_idx = 1, 
+                group_name = 'Resolved, Lensed Secondary Source',
                 pri_clr = 'rgb(0, 204, 150)',
-                time_width = 1.2, marker_size = 6
+                time_width = 1.2, 
+                marker_size = 6
             ),
             
             'lens': traces.Ast_Lens(
                 group_name = 'Lens(es)',
                 zorder = 100,
-                pri_clr = 'rgb(148, 52, 110)', sec_clr = 'rgb(202, 104, 163)',
-                time_width = 2, full_width  = 1.5, marker_size = 10
+                pri_clr = 'rgb(148, 52, 110)', 
+                sec_clr = 'rgb(202, 104, 163)',
+                time_width = 2, 
+                full_width  = 1.5, 
+                marker_size = 10
             )
         }
 
@@ -159,11 +199,12 @@ class PlotPanel(Viewer):
         self.plot_layout = pn.FlexBox(
             objects = list(self.plot_boxes.values()),
             flex_wrap = 'nowrap',
-            gap = f'{2 * (50 - constants.PLOT_WIDTH)}%',
+            gap = f'{2 * (50 - styles.PLOT_WIDTH)}%',
             sizing_mode = 'stretch_both',
             styles = {'overflow':'scroll', 
-                      'border':'white solid 0.01rem',
-                      'border-top':'transparent', 'border-bottom':'transparent'}
+                      'border':f'{styles.CLRS["page_border"]} solid 0.01rem',
+                      'border-top':'transparent', 
+                      'border-bottom':'transparent'}
         )
     
         # Define dependencies
@@ -182,27 +223,24 @@ class PlotPanel(Viewer):
             # Make initial figure formats
             fig = go.Figure()
             fig.update_xaxes(
-                title = constants.FORMAT_DICT[name][1][0],
-                title_font_size = constants.FONTSIZES['plot_axes_labels'],
+                title = styles.FORMAT_DICT[name][1][0],
+                title_font_size = styles.FONTSIZES['plot_axes_labels'],
                 ticks = 'outside', tickformat = '000',
-                color = 'white',
-                gridcolor = constants.CLRS['gridline'], zeroline = False
+                color = styles.CLRS['txt_primary'],
+                gridcolor = styles.CLRS['plot_gridline'], zeroline = False
             )
             fig.update_yaxes(
-                title = constants.FORMAT_DICT[name][1][1],
-                title_font_size = constants.FONTSIZES['plot_axes_labels'],
+                title = styles.FORMAT_DICT[name][1][1],
+                title_font_size = styles.FONTSIZES['plot_axes_labels'],
                 ticks = 'outside', tickformat = '000',
-                color = 'white',
-                gridcolor = constants.CLRS['gridline'], zeroline = False
+                color = styles.CLRS['txt_primary'],
+                gridcolor = styles.CLRS['plot_gridline'], zeroline = False
             )
             fig.update_layout(
-                title = dict(text = constants.FORMAT_DICT[name][0], y = 0.98,
-                             font = dict(color = 'white', 
-                                         size = constants.FONTSIZES['plot_title'])),
-                plot_bgcolor = constants.CLRS['secondary'], 
-                paper_bgcolor = constants.CLRS['secondary'],
-                font_size = constants.FONTSIZES['plot_axes_ticks'],
-                legend = dict(grouptitlefont_color = 'white'),
+                plot_bgcolor = styles.CLRS['page_secondary'], 
+                paper_bgcolor = styles.CLRS['page_secondary'],
+                font_size = styles.FONTSIZES['plot_axes_ticks'],
+                legend = dict(grouptitlefont_color = styles.CLRS['txt_primary'], itemsizing = 'constant'),
                 margin = dict(l = 75, r = 5, t = 30, b = 55)
             )
             init_figs[name] = fig
@@ -226,7 +264,7 @@ class PlotPanel(Viewer):
                 indicators.loading,
                 justify_content = 'center',
                 align_content = 'center',
-                styles = constants.BASE_PLOTBOX_STYLE
+                styles = styles.BASE_PLOTBOX_STYLES
             )
 
          # Reverse y-axis for photometry magnitude
@@ -234,19 +272,23 @@ class PlotPanel(Viewer):
 
         return init_figs, plotly_panes, plot_boxes
 
+
     @pn.depends('settings_info.error_trigger', watch = True)
     def set_errored_layout(self):
         for name in self.plot_names:
             self.plot_boxes[name].objects = [indicators.error]
 
+
     def set_loading_layout(self):
         for name in self.plot_names:
             self.plot_boxes[name].objects = [indicators.loading]
 
+
     @pn.depends('settings_info.dashboard_checkbox.value', watch = True)
     def _update_selected_plots(self):
-        self.selected_phot_plots = list(set(constants.PHOT_PLOT_NAMES) & set(self.settings_info.dashboard_checkbox.value))
-        self.selected_ast_plots = list(set(constants.AST_PLOT_NAMES) & set(self.settings_info.dashboard_checkbox.value))
+        self.selected_phot_plots = [name for name in styles.PHOT_PLOT_NAMES if name in self.settings_info.dashboard_checkbox.value]
+        self.selected_ast_plots = [name for name in styles.AST_PLOT_NAMES if name in self.settings_info.dashboard_checkbox.value]
+
 
     @pn.depends('settings_info.trigger_param_change', watch = True)
     def _update_mod_components(self, *event):
@@ -259,6 +301,11 @@ class PlotPanel(Viewer):
                                     stop = self.settings_info.param_sliders['Time'].end, 
                                     num = self.settings_info.param_sliders['Num_pts'].value)
             
+            # Check if 'Time slider' value is in self.time
+            time_value = self.settings_info.param_sliders['Time'].value
+            if time_value not in self.time:
+                self.time = np.sort(np.append(self.time, time_value))
+
             # Check for bad parameter combination (e.g. dL > dS)  
             try:
                 # Check if 'Num_pts' slider is disabled
@@ -290,6 +337,7 @@ class PlotPanel(Viewer):
 
             except:
                 self.settings_info.set_param_errored_layout(undo = False)
+
 
     ########################
     # Photometry Methods
@@ -370,6 +418,7 @@ class PlotPanel(Viewer):
                 # Reset phot keys
                 self.main_phot_keys = ['gp_prior', 'gp_predict', 'gp_samps']
 
+
     def _update_gp_samps(self, *event):
         # Note: '*event' is needed for 'Num_samps' watcher
 
@@ -380,8 +429,8 @@ class PlotPanel(Viewer):
             samp_list = self.gp.sample(size = num_samps)
             self.phot_traces['gp_samps'].update_traces(samp_list = samp_list, num_samps = num_samps, time = self.time)
 
-    @pn.depends('selected_phot_plots', 
-                'settings_info.phot_checkbox.value', 'settings_info.genrl_plot_checkbox.value', watch = True)
+
+    @pn.depends('settings_info.dashboard_checkbox.value', 'settings_info.phot_checkbox.value', 'settings_info.genrl_plot_checkbox.value', watch = True)
     def _update_phot_plots(self, *event):
         # Note: '*event' is needed for 'Time' and 'Num_samps' watcher
 
@@ -394,6 +443,13 @@ class PlotPanel(Viewer):
 
             # Create photometry figure
             phot_fig = go.Figure(self.init_figs['phot'])
+
+            # Check if title should be shown
+            if 'title' in self.settings_info.genrl_plot_checkbox.value:
+                phot_fig.update_layout(
+                    title = dict(text = styles.FORMAT_DICT['phot'][0], y = 0.98,
+                    font = dict(color = styles.CLRS['txt_primary'], size = styles.FONTSIZES['plot_title'])),
+                )
 
             selected_trace_keys = set(self.main_phot_keys + self.extra_phot_keys)
 
@@ -421,7 +477,7 @@ class PlotPanel(Viewer):
 
                 for key in selected_marker_keys:
                     self.phot_traces[key].plot_marker(fig = phot_fig, marker_idx = time_idx[-1])
-            
+
             # Set up traces to fix axis limits
             min_time, max_time = np.nanmin(self.time), np.nanmax(self.time)
             min_phot, max_phot = np.nanmin(all_phot), np.nanmax(all_phot)
@@ -438,6 +494,7 @@ class PlotPanel(Viewer):
             # Check if loading or error indicator is on
             if 'indicator' in self.plot_boxes['phot'].objects[0].name:
                 self.plot_boxes['phot'].objects = [self.plotly_panes['phot']]
+
 
     ########################
     # Astrometry Methods
@@ -462,6 +519,7 @@ class PlotPanel(Viewer):
             # Reset ast keys
             self.main_ast_keys = ['unres_len', 'unres_unlen']
 
+
     @pn.depends('selected_ast_plots', 'settings_info.ast_checkbox.value', watch = True)
     def _update_extra_ast_traces(self):
         # Check if astrometry is selected in dashboard
@@ -477,14 +535,17 @@ class PlotPanel(Viewer):
                 self.extra_ast_keys.remove('bs_res_unlen')
                 self.extra_ast_keys += ['bs_res_unlen_pri', 'bs_res_unlen_sec']
 
+
     def _update_ps_res_len(self):
         ps_res_len = self.mod.get_resolved_astrometry(self.time)
         self.ast_traces['ps_res_len'].update_traces(ps_res_len, self.paramztn_info.selected_paramztn, self.time)
+
 
     def _update_bs_res_unlen(self):
         bs_res_unlen = self.mod.get_resolved_astrometry_unlensed(self.time)
         self.ast_traces['bs_res_unlen_pri'].update_traces(bs_res_unlen, self.time)
         self.ast_traces['bs_res_unlen_sec'].update_traces(bs_res_unlen, self.time)
+
 
     def _update_bs_res_len(self):
         # Check if 'res_bs_unlen_pri' or 'res_bs_unlen_sec' are already keys in extra_ast_keys
@@ -500,6 +561,7 @@ class PlotPanel(Viewer):
             self.ast_traces['bs_res_len_pri'].update_traces(bs_res_len, selected_paramztn ,self.time)
             self.ast_traces['bs_res_len_sec'].update_traces(bs_res_len, selected_paramztn, self.time)
 
+
     def _update_lens(self):
         selected_paramztn = self.paramztn_info.selected_paramztn
 
@@ -510,15 +572,14 @@ class PlotPanel(Viewer):
 
         self.ast_traces['lens'].update_traces(lens_ast, selected_paramztn, self.time)
 
-    @pn.depends('selected_ast_plots', 
-                'settings_info.ast_checkbox.value', 'settings_info.genrl_plot_checkbox.value', watch = True)
+
+    @pn.depends('settings_info.dashboard_checkbox.value', 'settings_info.ast_checkbox.value', 'settings_info.genrl_plot_checkbox.value', watch = True)
     def _update_ast_plots(self, *event):
         # Note: '*event' is needed for 'Time' watcher
 
         # Check if astrometry is selected in dashboard
         # Check for locks. This is needed to guard against checkbox resets
         if (len(self.selected_ast_plots) != 0) and (self.settings_info.lock_trigger == False):
-
             # Get times that are less than or equal to Time slider
             time_idx = np.where(self.time <= self.settings_info.param_sliders['Time'].value)[0]
 
@@ -526,6 +587,13 @@ class PlotPanel(Viewer):
 
                 # Create figure
                 ast_fig = go.Figure(self.init_figs[plot_name])
+
+                # Check if title should be shown
+                if 'title' in self.settings_info.genrl_plot_checkbox.value:
+                    ast_fig.update_layout(
+                        title = dict(text = styles.FORMAT_DICT[plot_name][0], y = 0.98,
+                        font = dict(color = styles.CLRS['txt_primary'], size = styles.FONTSIZES['plot_title'])),
+                    )
 
                 # Get all trace keys that are to be plotted
                 selected_trace_keys = set(self.extra_ast_keys + self.main_ast_keys)
@@ -573,6 +641,7 @@ class PlotPanel(Viewer):
                 # Check if loading or error indicator is on
                 if 'indicator' in self.plot_boxes[plot_name].objects[0].name:
                         self.plot_boxes[plot_name].objects = [self.plotly_panes[plot_name]]
+
 
     def __panel__(self):
         return self.plot_layout

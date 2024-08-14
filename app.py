@@ -3,9 +3,8 @@
 ################################################
 import panel as pn
 from panel.viewable import Viewer
-import param
 
-from app_utils import constants, indicators
+from app_utils import styles
 from app_components import mod_select, paramztn_select, settings_tabs, param_summary, code_panel, plot_panel
 
 
@@ -13,30 +12,30 @@ from app_components import mod_select, paramztn_select, settings_tabs, param_sum
 # Initialize Panel
 ################################################
 # Extensions and themes used by panel
-pn.extension('tabulator', 'plotly', 'codeeditor', design = 'bootstrap')
-pn.config.theme = 'dark'
+pn.extension('tabulator', 'plotly', 'codeeditor', design = styles.THEMES['page_design'])
+pn.config.theme = styles.THEMES['page_theme']
 
 
 ################################################
 # Dashboard - Layout
 ################################################
 class Dashboard(Viewer):
-    # To be instantiated classes (required inputs)
-    paramztn_info = param.ClassSelector(class_ = paramztn_select.ParamztnSelect)
+    def __init__(self, paramztn_info, **params):
+        # Note: the order in which the components are instantiated will determine precedence for updates taht have the same dependency
 
-    def __init__(self, **params):
-        super().__init__(**params)
         # Parameter section
+        self.paramztn_info = paramztn_info
         self.settings_tabs = settings_tabs.SettingsTabs(paramztn_info = self.paramztn_info)
+        super().__init__(**params)
         self.param_summary = param_summary.ParamSummary(paramztn_info = self.paramztn_info, settings_info = self.settings_tabs)
-        self.param_row = pn.FlexBox(self.param_summary, 
-                                    self.settings_tabs, 
-                                    gap = '0.5%',
-                                    flex_wrap = 'nowrap',
-                                    styles = {'height':'35%'})
+        self.param_row = pn.FlexBox(
+            self.param_summary, 
+            self.settings_tabs, 
+            gap = '0.5%',
+            flex_wrap = 'nowrap',
+            styles = {'height':'35%'}
+        )
 
-        # Note: ordering of code section and plot section here will determine which one updates first
-        
         # Code section
         self.code_panel = code_panel.CodePanel(paramztn_info = self.paramztn_info, settings_info = self.settings_tabs)
         
@@ -48,7 +47,8 @@ class Dashboard(Viewer):
             self.code_panel,
             flex_wrap = 'nowrap',
             gap = '0.5%',
-            styles = {'height':'64%', 'width':'100%'}
+            styles = {'height':'64%', 
+                      'width':'100%'}
         )
 
         # Entire dashboard layout
@@ -58,11 +58,8 @@ class Dashboard(Viewer):
             flex_direction = 'column',
             align_content = 'center'
         )
-        
-        # Add dependency of checkbox and layout
-        # Note: this is needed because 'settings_tabs' is a class that uses a required input class
-        self.settings_tabs.dashboard_checkbox.param.watch(self._update_layout, 'value')
-        
+
+
     def set_db_components(self):
         db_components = {}
 
@@ -70,19 +67,20 @@ class Dashboard(Viewer):
         for name in self.plot_panel.plot_names:
             db_components[name] = self.plot_panel.plot_boxes[name]
 
-        # Set label for summary
+        # Set label for summary and code display
         db_components['summary'] = self.param_summary.summary_layout
-
         db_components['code'] = self.code_panel.code_layout
 
         return db_components
     
+
     @pn.depends('paramztn_info.selected_paramztn', watch = True)
     def _hide_show(self):
         '''
         Note: Use .clear() and populate the dashboard instead of .visible = True/False. 
-              This is because scroll-bar resets and other styling updates for components don't seem to work when .visible = False.7
+              This is because scroll-bar resets and other styling updates for components don't seem to work when .visible = False.
         '''
+
         if self.paramztn_info.selected_paramztn == None:
             self.dashboard_layout.clear()
             self.dashboard_layout.styles = {}
@@ -90,7 +88,10 @@ class Dashboard(Viewer):
         else:
             # Note: 'set_default_tabs' leads to 'trigger_param_change', which will update everything else (e.g. plots, summary table, etc.)
             # Note: 'selected_paramztn' dependency of set_default_tabs could also be put in settings_tabs.py, 
-                # but I chose to put it here to update everything before dashboard gets populated
+                # but I chose to put it here to update everything before dashboard gets populated. This is the same with 'set_loading_layout' and 'reset_scroll'.
+            self.param_summary.reset_scroll()
+            self.code_panel.reset_scroll()
+            self.plot_panel.set_loading_layout()
             self.settings_tabs.set_default_tabs()
             self.dashboard_layout.styles = {
                 'margin-left':'1%',
@@ -102,7 +103,10 @@ class Dashboard(Viewer):
             }
             self.dashboard_layout.objects = [self.main_row, self.param_row]
 
+
+    @pn.depends('settings_tabs.dashboard_checkbox.value', watch = True)
     def _update_layout(self, *event):
+        self.plot_panel.set_loading_layout()
         unchecked_components = set(self.db_components.keys()) - set(self.settings_tabs.dashboard_checkbox.value)
         checked_plots = list(set(self.settings_tabs.dashboard_checkbox.value) - {'summary', 'code'})
 
@@ -125,7 +129,7 @@ class Dashboard(Viewer):
                 # At least 1 plot, and code displayed
                 case [True, True]:
                     for box in self.plot_panel.plot_boxes.values():
-                        box.styles = constants.EXPANDED_PLOTBOX_STYLE
+                        box.styles = styles.EXPANDED_PLOTBOX_STYLES
 
                     # This is a makeshift way to reset the scroll on the plot_layout flexbox
                         # There may be a better way to do this without JS
@@ -136,11 +140,11 @@ class Dashboard(Viewer):
                     # More than 1 plot
                     if len(checked_plots) > 1:
                         for box in self.plot_panel.plot_boxes.values():
-                            box.styles = constants.BASE_PLOTBOX_STYLE
+                            box.styles = styles.BASE_PLOTBOX_STYLES
 
                     # Single plot
                     else:
-                        self.db_components[checked_plots[0]].styles = constants.EXPANDED_PLOTBOX_STYLE
+                        self.db_components[checked_plots[0]].styles = styles.EXPANDED_PLOTBOX_STYLES
 
                 # Note: Nothing extra is done if no plots and code is displayed
             
@@ -154,7 +158,8 @@ class Dashboard(Viewer):
         elif 'code' not in self.settings_tabs.dashboard_checkbox.value:
             self.param_row.styles = {'height':'100%'}
             self.main_row.visible = False
-                          
+
+
     def __panel__(self):
         return self.dashboard_layout
     
@@ -166,9 +171,9 @@ class BAGLECalc(Viewer):
     def __init__(self, **params):
         self.page_title = pn.widgets.StaticText(
             value = 'BAGLE Calculator', 
-            styles = {'font-size':constants.FONTSIZES['page_title'], 
-                      'font-weight':'600', 
-                      'margin-bottom':'-0.4rem'}
+            styles = {'font-size': styles.FONTSIZES['page_title'], 
+                      'font-weight': '600', 
+                      'margin-bottom': '-0.4rem'}
         )
     
         self.mod_row = mod_select.ModSelect()
@@ -179,16 +184,18 @@ class BAGLECalc(Viewer):
         self.mod_header = pn.widgets.StaticText(
             value = 'Model:', 
             align = 'end',
-            styles = {'font-size': constants.FONTSIZES['header'], 
-                      'font-weight':'550', 'margin-bottom':'1rem'}
+            styles = {'font-size': styles.FONTSIZES['page_header'], 
+                      'font-weight': '550', 
+                      'margin-bottom': '1rem'}
         )
         
         # Parameterization Header
         self.paramztn_header = pn.widgets.StaticText(
             value = f'Parameterization:', 
             align = 'end',
-            styles = {'font-size':constants.FONTSIZES['header'],
-                      'font-weight':'550', 'margin-top':'0'}
+            styles = {'font-size': styles.FONTSIZES['page_header'],
+                      'font-weight': '550', 
+                      'margin-top': '0'}
         )
     
         self.header_col = pn.Column(
@@ -210,7 +217,8 @@ class BAGLECalc(Viewer):
             flex_direction = 'row',
             justify_content = 'center',
             flex_wrap = 'nowrap',
-            styles = {'width': '90%', 'margin-bottom':'-0.2rem'}
+            styles = {'width': '90%', 
+                      'margin-bottom': '-0.2rem'}
         )
     
         # Content layout for entire page
@@ -236,7 +244,8 @@ class BAGLECalc(Viewer):
             pn.HSpacer(),
             self.page_content,
             pn.HSpacer(),
-            styles = {'overflow-y':'hidden', 'overflow-x':'scroll'}
+            styles = {'overflow-y':'hidden', 
+                      'overflow-x':'scroll'}
         )
     
 

@@ -5,7 +5,7 @@ import numpy as np
 import itertools
 import plotly.graph_objects as go
 
-from app_utils import constants
+from app_utils import styles
 
 
 ################################################
@@ -44,9 +44,12 @@ def add_limit_trace(fig, x_limits, y_limits):
     '''
     fig.add_trace(
         go.Scatter(
-            x = x_limits, y = y_limits,
+            x = x_limits, 
+            y = y_limits,
             marker = dict(color = 'rgba(0, 0, 0, 0)', size = 10),
-            mode = 'markers', hoverinfo = 'skip', showlegend = False
+            mode = 'markers', 
+            hoverinfo = 'skip', 
+            showlegend = False
         )
     )
 
@@ -82,10 +85,11 @@ class Genrl_Phot:
             go.Scatter(
                 x = self.time[time_idx],
                 y = self.phot[time_idx],
-                name = '', zorder = self.zorder,
-                legendgroup = self.group_name, showlegend = self.show_legend,
-                legendgrouptitle = dict(text = self.group_name, 
-                                        font_size = constants.FONTSIZES['legendgroup']),
+                name = '', 
+                zorder = self.zorder,
+                legendgroup = self.group_name, 
+                showlegend = self.show_legend,
+                legendgrouptitle = dict(text = self.group_name, font_size = styles.FONTSIZES['plot_legendgroup']),
                 line = dict(color = self.pri_clr, width = self.time_width),
                 hovertemplate = ALL_TEMPLATES['phot']
             )
@@ -96,8 +100,10 @@ class Genrl_Phot:
             go.Scatter(
                 x = self.time,
                 y = self.phot,
-                name = '', zorder = -100,
-                legendgroup = self.group_name, showlegend = False, 
+                name = '', 
+                zorder = -100,
+                legendgroup = self.group_name, 
+                showlegend = False, 
                 line = dict(color = self.sec_clr, width = self.full_width, dash = self.full_dash_style),
                 hovertemplate = ALL_TEMPLATES['phot']
             )
@@ -109,8 +115,10 @@ class Genrl_Phot:
                 x = [self.time[marker_idx]],
                 y = [self.phot[marker_idx]],
                 name = '', zorder = self.zorder,
-                legendgroup = self.group_name, showlegend = False,
-                mode = 'markers', marker = dict(color = self.pri_clr, size = self.marker_size),
+                legendgroup = self.group_name, 
+                showlegend = False,
+                mode = 'markers', 
+                marker = dict(color = self.pri_clr, size = self.marker_size),
                 hoverinfo = 'skip'
             )
         )
@@ -138,7 +146,7 @@ class Phot_GP_Samps:
     def plot_time(self, fig, time_idx):
         if self.num_samps > 0:
             # color cycle for samples
-            clr_cycle = itertools.cycle(constants.CLRS['gp_cycle'])
+            clr_cycle = itertools.cycle(styles.GP_SAMP_CLRS)
             
             # Lists used to only show the legend for the first sample and put it in front for visual purposes
             zorder_list = np.repeat(-101, self.num_samps).tolist()
@@ -150,10 +158,11 @@ class Phot_GP_Samps:
                     go.Scatter(
                         x = self.time[time_idx],
                         y = samp[time_idx],
-                        name = '', zorder = zorder_list[i],
-                        legendgroup = self.group_name, showlegend = show_legend_list[i],
-                        legendgrouptitle = dict(text = self.group_name, 
-                                                font_size = constants.FONTSIZES['legendgroup']),
+                        name = '', 
+                        zorder = zorder_list[i],
+                        legendgroup = self.group_name, 
+                        showlegend = show_legend_list[i],
+                        legendgrouptitle = dict(text = self.group_name, font_size = styles.FONTSIZES['plot_legendgroup']),
                         line = dict(color = next(clr_cycle), width = self.time_width),
                         hoverinfo = 'skip'
                     )
@@ -201,10 +210,11 @@ class Ast_Unres:
             go.Scatter(
                 x = self.plot_data[plot_name][0][time_idx],
                 y = self.plot_data[plot_name][1][time_idx],
-                name = '', zorder = self.zorder,
-                legendgroup = self.group_name, showlegend = True,
-                legendgrouptitle = dict(text = self.group_name, 
-                                        font_size = constants.FONTSIZES['legendgroup']),
+                name = '', 
+                zorder = self.zorder,
+                legendgroup = self.group_name, 
+                showlegend = True,
+                legendgrouptitle = dict(text = self.group_name, font_size = styles.FONTSIZES['plot_legendgroup']),
                 line = dict(color = self.pri_clr, width = self.time_width),
                 hovertemplate = ALL_TEMPLATES[plot_name],
                 text = self.plot_data[plot_name][2]
@@ -216,8 +226,10 @@ class Ast_Unres:
             go.Scatter(
                 x = self.plot_data[plot_name][0],
                 y = self.plot_data[plot_name][1],
-                name = '', zorder = -100,
-                legendgroup = self.group_name, showlegend = False,
+                name = '', 
+                zorder = -100,
+                legendgroup = self.group_name, 
+                showlegend = False,
                 line = dict(color = self.sec_clr, width = self.full_width, dash = 'dash'),
                 hovertemplate = ALL_TEMPLATES[plot_name],
                 text = self.plot_data[plot_name][2]
@@ -229,9 +241,12 @@ class Ast_Unres:
             go.Scatter(
                 x = [self.plot_data[plot_name][0][marker_idx]],
                 y = [self.plot_data[plot_name][1][marker_idx]],
-                name = '', zorder = self.zorder,
-                legendgroup = self.group_name, showlegend = False,
-                mode = 'markers', marker = dict(color = self.pri_clr, size = self.marker_size),
+                name = '', 
+                zorder = self.zorder,
+                legendgroup = self.group_name, 
+                showlegend = False,
+                mode = 'markers', 
+                marker = dict(color = self.pri_clr, size = self.marker_size),
                 hoverinfo = 'skip'
             )
         )
@@ -292,10 +307,11 @@ class Ast_PS_ResLensed:
                     x = self.plot_data[plot_name][0][i][time_idx],
                     y = self.plot_data[plot_name][1][i][time_idx],
                     name = '',
-                    legendgroup = self.group_name, showlegend = show_legend_list[i],
-                    legendgrouptitle = dict(text = self.group_name, 
-                                            font_size = constants.FONTSIZES['legendgroup']),
-                    mode = 'markers', marker = dict(color = self.pri_clr, size = 1),
+                    legendgroup = self.group_name, 
+                    showlegend = show_legend_list[i],
+                    legendgrouptitle = dict(text = self.group_name, font_size = styles.FONTSIZES['plot_legendgroup']),
+                    mode = 'markers', 
+                    marker = dict(color = self.pri_clr, size = 1),
                     hoverinfo = 'skip'
                 )
             )
@@ -308,8 +324,10 @@ class Ast_PS_ResLensed:
                     x = [self.plot_data[plot_name][0][i][marker_idx]],
                     y = [self.plot_data[plot_name][1][i][marker_idx]],
                     name = '', zorder = 1000,
-                    legendgroup = self.group_name, showlegend = False,
-                    mode = 'markers', marker = dict(color = self.pri_clr, size = self.marker_size),
+                    legendgroup = self.group_name, 
+                    showlegend = False,
+                    mode = 'markers', 
+                    marker = dict(color = self.pri_clr, size = self.marker_size),
                     hoverinfo = 'skip'
                 )
             )
@@ -437,10 +455,11 @@ class Ast_Lens:
                 go.Scatter(
                     x = self.plot_data[plot_name][0][i][time_idx],
                     y = self.plot_data[plot_name][1][i][time_idx],
-                    name = '', zorder = self.zorder,
-                    legendgroup = self.group_name, showlegend = show_legend_list[i],
-                    legendgrouptitle = dict(text = self.group_name, 
-                                            font_size = constants.FONTSIZES['legendgroup']),
+                    name = '', 
+                    zorder = self.zorder,
+                    legendgroup = self.group_name, 
+                    showlegend = show_legend_list[i],
+                    legendgrouptitle = dict(text = self.group_name, font_size = styles.FONTSIZES['plot_legendgroup']),
                     line = dict(color = self.pri_clr, width = self.time_width),
                     hovertemplate = ALL_TEMPLATES[plot_name],
                     text = self.plot_data[plot_name][2]
@@ -453,8 +472,10 @@ class Ast_Lens:
                 go.Scatter(
                     x = self.plot_data[plot_name][0][i],
                     y = self.plot_data[plot_name][1][i],
-                    name = '', zorder = -100,
-                    legendgroup = self.group_name, showlegend = False,
+                    name = '', 
+                    zorder = -100,
+                    legendgroup = self.group_name, 
+                    showlegend = False,
                     line = dict(color = self.sec_clr, width = self.full_width, dash = 'dash'),
                     hovertemplate = ALL_TEMPLATES[plot_name],
                     text = self.plot_data[plot_name][2]
@@ -467,9 +488,12 @@ class Ast_Lens:
                 go.Scatter(
                     x = [self.plot_data[plot_name][0][i][marker_idx]],
                     y = [self.plot_data[plot_name][1][i][marker_idx]],
-                    name = '', zorder = self.zorder,
-                    legendgroup = self.group_name, showlegend = False,
-                    mode = 'markers', marker = dict(color = self.pri_clr, size = self.marker_size),
+                    name = '', 
+                    zorder = self.zorder,
+                    legendgroup = self.group_name, 
+                    showlegend = False,
+                    mode = 'markers', 
+                    marker = dict(color = self.pri_clr, size = self.marker_size),
                     hoverinfo = 'skip'
                 )
             )
