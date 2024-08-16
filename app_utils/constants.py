@@ -99,7 +99,7 @@ DEFAULT_RANGES = {
     'gp_log_omega04_S0': (None, -8.5, -15, 5, 0.1),
     'gp_log_omega0_S0': (None, -10, -15, 5, 0.1),
     'gp_log_rho': ('log(days)', 1.3, -2, 2, 0.1),
-    'gp_rho': ('days', 20, 0.01, 100, -0.1),
+    'gp_rho': ('days', 20, 0.01, 100, 0.1),
     'gp_log_sigma': (None, -4, -10, 5, 0.1),
     'gp_log_jit_sigma': (None, -4.5, -10, 5, 0.1),
     'log10_thetaE': ('log10(mas)', 0.5, -1, 1, 0.1),

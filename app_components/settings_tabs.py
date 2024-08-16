@@ -20,7 +20,7 @@ from app_components import paramztn_select
 class SettingsTabs(Viewer):
     # To be instantiated classes (required inputs)
     paramztn_info = param.ClassSelector(class_ = paramztn_select.ParamztnSelect)
-    
+
     # Parameters to prevent unwanted updates or trigger updates
         # It might be better to make lock_trigger into a dictionary to store locks for different components
         # Currently not needed, but this could separate Time slider lock and checkbox locks
@@ -416,14 +416,18 @@ class SettingsTabs(Viewer):
     def _check_errors(self, param, param_val, min_val, max_val, step_val):
         error_html = ''''''
         if np.any(np.isnan([param_val, min_val, max_val, step_val])):
-            error_html += '''<li>All inputs must be numbers.</li>'''     
+            error_html += '''<li>All inputs must be numbers.</li>'''   
+
         if (min_val >= max_val):
             error_html += '''<li>The minimum value must be smaller than the maximum value.</li>'''
         elif (param_val < min_val) or (param_val > max_val):
             if param in ['Time']:
                 error_html += '''<li>Value must be inside range.</li>'''
+
         if (step_val > (abs(max_val - min_val))):
             error_html += '''<li>The step size cannot be larger than the range size.</li>'''
+        elif step_val <= 0:
+            error_html += '''<li>The step size must be larger than zero.</li>'''
 
         # Make error message and exit if error exists
         if error_html != '''''':
@@ -446,6 +450,17 @@ class SettingsTabs(Viewer):
         mod_types = self.paramztn_info.mod_info.type_dict
         self.set_base_layout()
 
+        # Resetting scrolls for some tabs
+            # I don't have access to JS, so as a work around, I clear the tabs and repopulate them
+        self.sliders_layout.clear()
+        self.sliders_layout.objects = self.sliders_content
+
+        self.settings_layout.clear()
+        self.settings_layout.objects = self.settings_content
+
+        self.refs_cites.clear()
+        self.refs_cites.objects = [self.refs_cites_html]
+        
         # Update checkboxes
         # Note: Lock used to not trigger checkbox-related changes
             # This is needed because same changes will trigger through data frame update (leads to 'trigger_param_change')
@@ -495,17 +510,6 @@ class SettingsTabs(Viewer):
 
         # Update sliders
         self._update_sliders()
-
-        # Resetting scrolls for some tabs
-            # I don't have access to JS, so as a work around, I clear the tabs and repopulate them
-        self.sliders_layout.clear()
-        self.sliders_layout.objects = self.sliders_content
-
-        self.settings_layout.clear()
-        self.settings_layout.objects = self.settings_content
-
-        self.refs_cites.clear()
-        self.refs_cites.objects = [self.refs_cites_html]
 
 
     def _update_sliders(self, *event):

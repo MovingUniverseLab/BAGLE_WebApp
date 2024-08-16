@@ -4,8 +4,8 @@
 import panel as pn
 from panel.viewable import Viewer
 
-from app_utils import styles
-from app_components import mod_select, paramztn_select, settings_tabs, param_summary, code_panel, plot_panel
+from app_utils import styles, traces
+from app_components import code_display, mod_select, paramztn_select, plots, settings_tabs, param_summary
 
 
 ################################################
@@ -36,11 +36,14 @@ class Dashboard(Viewer):
             styles = {'height':'35%'}
         )
 
+        # Trace information
+        self.trace_info = traces.AllTraceInfo(paramztn_info = self.paramztn_info, settings_info = self.settings_tabs)
+
         # Code section
-        self.code_panel = code_panel.CodePanel(paramztn_info = self.paramztn_info, settings_info = self.settings_tabs)
+        self.code_panel = code_display.CodePanel(paramztn_info = self.paramztn_info, settings_info = self.settings_tabs, trace_info = self.trace_info)
         
         # Plot section
-        self.plot_panel = plot_panel.PlotPanel(paramztn_info = self.paramztn_info, settings_info = self.settings_tabs)
+        self.plot_panel = plots.PlotPanel(paramztn_info = self.paramztn_info, settings_info = self.settings_tabs, trace_info = self.trace_info)
 
         self.main_row = pn.FlexBox(
             self.plot_panel,
