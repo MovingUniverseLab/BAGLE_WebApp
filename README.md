@@ -13,27 +13,12 @@ Navigate to the cloned BAGLE_WebApp folder and use the following command:
 pip install -r requirements.txt
 ```
 
-### 3) Clone BAGLE_Microlensing Repo
-Still in the BAGLE_WebApp folder, clone the **dev branch** of the BAGLE_Microlensing repository:
-```
-git clone -b dev https://github.com/MovingUniverseLab/BAGLE_Microlensing.git
-```
-
-Note that the python packages for the BAGLE_Microlensing repository will also need to be installed. 
-Please refer to [BAGLE github](https://github.com/MovingUniverseLab/BAGLE_Microlensing/tree/dev) for additional information.
-```
-Main Packages to Install:
-  - pip3 install matplotlib
-  - pip3 install numpy
-  - pip3 install astropy
-  - pip3 install pytest
-  - pip3 install celerite
-  - pip3 install ephem
-  - pip3 install pymultinest
-```
+### 3) Install BAGLE by cloning the BAGLE_Microlensing repo (Dev branch)
+The BAGLE_Microlensing repository can be found here: [github link](https://github.com/MovingUniverseLab/BAGLE_Microlensing/tree/dev). Please make sure you clone the **dev branch**.
+Also note that the python packages for the BAGLE will also need to be installed. 
 
 ## Running the Application
-The web application can be ran locally by using the following command in terminal:
+While in the BAGLE_WebApp folder, the web application can be ran locally by using the following command in terminal:
 ```
 panel serve app.py
 ```
