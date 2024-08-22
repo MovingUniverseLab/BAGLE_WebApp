@@ -13,31 +13,6 @@ import celerite
 from app_utils import styles
 from app_components import paramztn_select, settings_tabs
 
-################################################
-# Hover Templates
-################################################
-PHOT_TEMPLATE = ('<b>Time:</b> %{x:.3f}' +
-                 '<br><b>Mag.:</b> %{y:.3f}' +
-                 '<extra></extra>')
-RADEC_TEMPLATE = ('<b>Time:</b> %{text:.3f}' + 
-                  '<br><b><span style="font-size:1rem">&#916;&#120572;</span><sup>*</sup>:</b> %{x:.5f}' +
-                  '<br><b><span style="font-size:1rem">&#916;&#120575;</span>:</b> %{y:.5f}' +
-                  '<extra></extra>') 
-RA_TEMPLATE = ('<b>Time:</b> %{x:.3f}' + 
-               '<br><b><span style="font-size:1rem">&#916;&#120572;</span><sup>*</sup>:</b> %{y:.5f}' +
-               '<extra></extra>')
-DEC_TEMPLATE = ('<b>Time:</b> %{x:.3f}' + 
-                '<br><b><span style="font-size:1rem">&#916;&#120575;</span>:</b> %{y:.5f}' +
-                '<extra></extra>')
-
-# Dictionary to store templates
-ALL_TEMPLATES = {
-    'phot': PHOT_TEMPLATE,
-    'ast_radec': RADEC_TEMPLATE,
-    'ast_ra': RA_TEMPLATE,
-    'ast_dec': DEC_TEMPLATE,
-}
-
 
 ################################################
 # Limit Trace (For all Plots)
@@ -81,7 +56,7 @@ class AllTraceInfo(param.Parameterized):
         # A dictionary to store objects (e.g. model, time, gp) and data that may be shared across multiple traces.
         # The purpose of this dictionary is to make it so that we don't have to repetatively call the same functions.
         self.cache = {}
-        
+
         # Defining traces
         self.phot_traces = {
             'non_gp': Genrl_Phot(
@@ -91,8 +66,6 @@ class AllTraceInfo(param.Parameterized):
                 group_name = 'Photometry',
                 zorder = 100, 
                 show_legend = False,
-                pri_clr = 'red', 
-                sec_clr = 'rgb(255, 77, 77)', 
                 time_width = 2, 
                 full_width  = 1.5, 
                 marker_size = 10
@@ -105,10 +78,8 @@ class AllTraceInfo(param.Parameterized):
                 group_name = 'GP Prior Mean',
                 zorder = 90, 
                 show_legend = True,
-                pri_clr = 'orange', 
-                sec_clr = 'rgba(255, 193, 77, 0.8)',
-                time_width = 2, 
-                full_width  = 1.5, 
+                time_width = 1.5, 
+                full_width  = 1, 
                 marker_size = 10
             ),
             
@@ -119,10 +90,8 @@ class AllTraceInfo(param.Parameterized):
                 group_name = 'GP Predictive Mean', 
                 zorder = 100, 
                 show_legend = True,
-                pri_clr = 'red', 
-                sec_clr = 'rgba(255, 77, 77, 0.9)',
-                time_width = 1.4, 
-                full_width  = 0.9, 
+                time_width = 1.5, 
+                full_width  = 1, 
                 marker_size = 10, 
                 full_dash_style = 'solid'
             ),
@@ -131,7 +100,8 @@ class AllTraceInfo(param.Parameterized):
                 settings_info = self.settings_info,
                 cache = self.cache,
                 group_name = 'GP Prior Samples',
-                time_width = 0.3
+                time_width = 0.3,
+                opacity = 0.8,
             )
         }
 
@@ -142,8 +112,6 @@ class AllTraceInfo(param.Parameterized):
                 lensed_trace = True,
                 group_name = 'Unresolved, Lensed Source(s)',
                 zorder = 90,
-                pri_clr = 'red', 
-                sec_clr = 'rgb(255, 77, 77)', 
                 time_width = 1.5, 
                 full_width  = 1, 
                 marker_size = 8
@@ -154,8 +122,6 @@ class AllTraceInfo(param.Parameterized):
                 lensed_trace = False,
                 group_name = 'Unresolved, Unlensed Source(s)',
                 zorder = 80,
-                pri_clr = 'orange', 
-                sec_clr = 'rgb(255, 193, 77)', 
                 time_width = 1.5, 
                 full_width  = 1, 
                 marker_size = 8
@@ -165,7 +131,6 @@ class AllTraceInfo(param.Parameterized):
                 paramztn_info = self.paramztn_info,
                 cache = self.cache,
                 group_name = 'Resolved, Lensed Source Images',
-                pri_clr = 'yellow',
                 time_width = 1.2, 
                 marker_size = 6
             ),
@@ -177,8 +142,6 @@ class AllTraceInfo(param.Parameterized):
                 src_idx = 0, 
                 group_name = 'Resolved, Unlensed Primary Source',
                 zorder = 70,
-                pri_clr = 'rgb(0, 134, 149)', 
-                sec_clr = 'rgb(0, 184, 204)', 
                 time_width = 2, 
                 full_width  = 1.5, 
                 marker_size = 8
@@ -190,8 +153,6 @@ class AllTraceInfo(param.Parameterized):
                 src_idx = 1, 
                 group_name = 'Resolved, Unlensed Secondary Source',
                 zorder = 70,
-                pri_clr = 'rgb(40, 121, 62)', 
-                sec_clr = 'rgb(51, 153, 78)', 
                 time_width = 2, 
                 full_width  = 1.5, 
                 marker_size = 8
@@ -202,7 +163,6 @@ class AllTraceInfo(param.Parameterized):
                 cache = self.cache,
                 src_idx = 0, 
                 group_name = 'Resolved, Lensed Primary Source',
-                pri_clr = 'rgb(128, 242, 255)',
                 time_width = 1.2, 
                 marker_size = 6
             ),
@@ -211,7 +171,6 @@ class AllTraceInfo(param.Parameterized):
                 cache = self.cache,
                 src_idx = 1, 
                 group_name = 'Resolved, Lensed Secondary Source',
-                pri_clr = 'rgb(0, 204, 150)',
                 time_width = 1.2, 
                 marker_size = 6
             ),
@@ -221,8 +180,6 @@ class AllTraceInfo(param.Parameterized):
                 cache = self.cache,
                 group_name = 'Lens(es)',
                 zorder = 100,
-                pri_clr = 'rgb(148, 52, 110)', 
-                sec_clr = 'rgb(202, 104, 163)',
                 time_width = 2, 
                 full_width  = 1.5, 
                 marker_size = 10
@@ -231,6 +188,9 @@ class AllTraceInfo(param.Parameterized):
 
         self.all_traces = {**self.phot_traces, **self.ast_traces}
         self.trace_types = self.get_trace_types()
+
+        # Set theme of all traces to default
+        self.set_trace_theme(theme_dict = styles.DEFAULT_PLOT_THEME)
 
         #  # A dictionary that maps the options in self.settings_info.phot_checkbox to extra phot traces
         #     # I denote anything that is linked to self.settings_info.phot_checkbox as an extra phot trace
@@ -253,6 +213,7 @@ class AllTraceInfo(param.Parameterized):
         self.param.watch(self._update_extra_ast_traces, 'selected_phot_plots', precedence = 1)
         self.settings_info.param_sliders['Num_samps'].param.watch(self._update_gp_samps, 'value', precedence = 0)
 
+
     def get_trace_types(self):
         # Dictionary to indicate which traces have a time, full, and marker trace
         trace_types = {
@@ -262,7 +223,7 @@ class AllTraceInfo(param.Parameterized):
         }
 
         for trace_key in self.all_traces.keys():
-            # Get trace dependencies and types
+            # Get trace dependencies
             trace_fns = dir(self.all_traces[trace_key])
 
             for type_name in trace_types.keys():
@@ -272,6 +233,13 @@ class AllTraceInfo(param.Parameterized):
         return trace_types
 
 
+    def set_trace_theme(self, theme_dict):
+        for trace_key in self.all_traces.keys():
+            trace = self.all_traces[trace_key]
+            for clr_key in theme_dict[trace_key].keys():
+                setattr(trace, clr_key, theme_dict[trace_key][clr_key])
+
+
     @pn.depends('settings_info.dashboard_checkbox.value', watch = True)
     def _update_selected_plots(self):
         self.selected_phot_plots = [name for name in styles.PHOT_PLOT_NAMES if name in self.settings_info.dashboard_checkbox.value]
@@ -279,7 +247,6 @@ class AllTraceInfo(param.Parameterized):
 
 
     def update_all_traces(self):
-        print('UPDATING ALL TRACES:::::')
         time = np.linspace(start = self.settings_info.param_sliders['Time'].start, 
                            stop = self.settings_info.param_sliders['Time'].end, 
                            num = self.settings_info.param_sliders['Num_pts'].value)
@@ -317,7 +284,6 @@ class AllTraceInfo(param.Parameterized):
             if (event != ()) and (len(event[0].old) != 0):
                 return
             else:
-                print('UPDATING MAIN PHOTOMETRY TRACES')
                 # Check for GP
                 if 'GP' not in self.paramztn_info.selected_paramztn:
                     # Reset phot keys
@@ -383,7 +349,6 @@ class AllTraceInfo(param.Parameterized):
             # Update relevant phot traces
                 # Note the 'gp_prior' is excluded because we would have already updated it's photometry
             for trace_key in set(self.main_phot_keys) - {'gp_prior'}:
-                print(trace_key)
                 self.all_traces[trace_key]._update_trace()
             
 
@@ -415,7 +380,6 @@ class AllTraceInfo(param.Parameterized):
             if (event != ()) and (len(event[0].old) != 0):
                 return
             else:
-                print('UPDATING MAIN ASTROMETRY TRACES')
                 selected_paramztn = self.paramztn_info.selected_paramztn
                 if 'BL' in selected_paramztn:
                     self.cache['bl_image_arr'], self.cache['bl_amp_arr'] = self.cache['mod'].get_all_arrays(self.cache['time'])
@@ -424,7 +388,6 @@ class AllTraceInfo(param.Parameterized):
 
                 # Update relevant ast traces
                 for trace_key in self.main_ast_keys:
-                    print(trace_key)
                     self.all_traces[trace_key]._update_trace()
 
 
@@ -438,14 +401,12 @@ class AllTraceInfo(param.Parameterized):
             if (event != ()) and (len(event[0].old) != 0):
                 return
             else:
-                print('UPDATING EXTRA ASTROMETRY TRACES')
                 extra_ast_keys = []
                 for cb_key in self.settings_info.ast_checkbox.value:
                     extra_ast_keys += self.extra_ast_cb_map[cb_key]
                 
                 # Update relevant ast traces
                 for trace_key in extra_ast_keys:
-                    print(trace_key)
                     self.all_traces[trace_key]._update_trace()
 
                 self.extra_ast_keys = extra_ast_keys
@@ -469,9 +430,10 @@ class Genrl_Phot(param.Parameterized):
 
     def __init__(self, cache, gp_trace, 
                  group_name, zorder, show_legend,
-                 pri_clr, sec_clr,
                  time_width, full_width, marker_size,
-                 full_dash_style = 'dash', **params):
+                 full_dash_style = 'dash', 
+                 pri_clr = None, sec_clr = None, opacity = 1, 
+                 **params):
         super().__init__(**params)
         '''
         cache: a dictionary that should be shared across all traces.
@@ -480,11 +442,14 @@ class Genrl_Phot(param.Parameterized):
         self.cache = cache
         self.gp_trace = gp_trace
         self.group_name, self.zorder, self.show_legend = group_name, zorder, show_legend
-        self.pri_clr, self.sec_clr = pri_clr, sec_clr
         self.time_width, self.marker_size, self.full_width = time_width, marker_size, full_width
         self.full_dash_style = full_dash_style
+        self.pri_clr, self.sec_clr, self.opacity = pri_clr, sec_clr, opacity
 
         self.phot = None
+        
+        # This is a dictionary to store the indices of all traces using a primary color or a secondary color
+        self.all_trace_idx = {}
 
     def _update_trace(self):
         if self.gp_trace == False:
@@ -497,6 +462,9 @@ class Genrl_Phot(param.Parameterized):
             self.phot = gp.predict(mag_obs_corr, return_cov = False)
 
     def plot_time(self, fig, time_idx):
+        self.all_trace_idx['pri_clr'] = [self.cache['current_idx']] # Time trace should reset the 'pri_clr' value
+        self.cache['current_idx'] += 1
+
         fig.add_trace(
             go.Scatter(
                 x = self.cache['time'][time_idx],
@@ -507,11 +475,15 @@ class Genrl_Phot(param.Parameterized):
                 showlegend = self.show_legend,
                 legendgrouptitle = dict(text = self.group_name, font_size = styles.FONTSIZES['plot_legendgroup']),
                 line = dict(color = self.pri_clr, width = self.time_width),
-                hovertemplate = ALL_TEMPLATES['phot']
+                opacity = self.opacity,
+                hovertemplate = styles.ALL_TEMPLATES['phot']
             )
         )
 
     def plot_full(self, fig):
+        self.all_trace_idx['sec_clr'] = [self.cache['current_idx']] # Full trace should reset the 'sec_clr' value
+        self.cache['current_idx'] += 1
+
         fig.add_trace(
             go.Scatter(
                 x = self.cache['time'],
@@ -521,11 +493,15 @@ class Genrl_Phot(param.Parameterized):
                 legendgroup = self.group_name, 
                 showlegend = False, 
                 line = dict(color = self.sec_clr, width = self.full_width, dash = self.full_dash_style),
-                hovertemplate = ALL_TEMPLATES['phot']
+                opacity = self.opacity,
+                hovertemplate = styles.ALL_TEMPLATES['phot']
             )
         )
 
     def plot_marker(self, fig, marker_idx):
+        self.all_trace_idx['pri_clr'].append(self.cache['current_idx']) # Marker trace should append to the 'pri_clr' value. This assumes markers are plotted after time.
+        self.cache['current_idx'] += 1
+
         fig.add_trace(
             go.Scatter(
                 x = [self.cache['time'][marker_idx]],
@@ -535,6 +511,7 @@ class Genrl_Phot(param.Parameterized):
                 showlegend = False,
                 mode = 'markers', 
                 marker = dict(color = self.pri_clr, size = self.marker_size),
+                opacity = self.opacity,
                 hoverinfo = 'skip'
             )
         )
@@ -631,7 +608,11 @@ class Genrl_Phot(param.Parameterized):
 class Phot_GP_Samps(param.Parameterized):
     settings_info = param.ClassSelector(class_ = settings_tabs.SettingsTabs)
 
-    def __init__(self, cache, group_name, time_width, **params):
+    def __init__(self, cache, 
+                 group_name, 
+                 time_width, 
+                 clr_cycle = None, opacity = 1,
+                 **params):
         '''
         cache: a dictionary that should be shared across all traces.
         '''
@@ -640,25 +621,38 @@ class Phot_GP_Samps(param.Parameterized):
         self.cache = cache
         self.group_name = group_name
         self.time_width = time_width
+        self.clr_cycle, self.opacity = clr_cycle, opacity
 
         self.samp_list = None
 
+        # The keys of this dictionary are the indices of the color cycle, while the values is a list with the trace indices
+        self.all_trace_idx = {}
+
     def _update_trace(self, *event):
-        print('UPDATING GP SAMPLES')
         self.samp_list = self.cache['gp'].sample(size = self.settings_info.param_sliders['Num_samps'].value)
         
     def plot_time(self, fig, time_idx):
         num_samps = self.settings_info.param_sliders['Num_samps'].value
         if num_samps > 0:
-            # color cycle for samples
-            clr_cycle = itertools.cycle(styles.GP_SAMP_CLRS)
+            # Color cycle for samples
+            # I'm using 'itertools.cycle' here just in case we want to increase the maximum number of samples past 10
+            clr_cycle = itertools.cycle(self.clr_cycle)
             
             # Lists used to only show the legend for the first sample and put it in front for visual purposes
             zorder_list = np.repeat(-101, num_samps).tolist()
             show_legend_list = np.repeat(False, num_samps).tolist()
             zorder_list[0], show_legend_list[0] = -100, True
             
+            # Reset all_trace_idx lists before plotting
+            for cycle_idx in range(len(self.clr_cycle)):
+                self.all_trace_idx['clr_cycle', cycle_idx] = []
+
             for i, samp in enumerate(self.samp_list):
+                clr = next(clr_cycle)
+                cycle_idx = self.clr_cycle.index(clr)
+                self.all_trace_idx['clr_cycle', cycle_idx].append(self.cache['current_idx'])
+                self.cache['current_idx'] += 1
+
                 fig.add_trace(
                     go.Scatter(
                         x = self.cache['time'][time_idx],
@@ -668,7 +662,8 @@ class Phot_GP_Samps(param.Parameterized):
                         legendgroup = self.group_name, 
                         showlegend = show_legend_list[i],
                         legendgrouptitle = dict(text = self.group_name, font_size = styles.FONTSIZES['plot_legendgroup']),
-                        line = dict(color = next(clr_cycle), width = self.time_width),
+                        line = dict(color = clr, width = self.time_width),
+                        opacity = self.opacity,
                         hoverinfo = 'skip'
                     )
                 )
@@ -700,8 +695,9 @@ class Ast_Unres(param.Parameterized):
 
     def __init__(self, cache, lensed_trace, 
                  group_name, zorder,
-                 pri_clr, sec_clr,
-                 time_width, full_width, marker_size, **params):
+                 time_width, full_width, marker_size, 
+                 pri_clr = None, sec_clr = None,
+                 **params):
         '''
         cache: a dictionary that should be shared across all traces.
         lensed_trace: a boolean indicating whether the trace is for lensed (True) or unlensed (False) astrometry.
@@ -711,11 +707,14 @@ class Ast_Unres(param.Parameterized):
         self.cache = cache
         self.lensed_trace = lensed_trace
         self.group_name, self.zorder = group_name, zorder
-        self.pri_clr, self.sec_clr = pri_clr, sec_clr
         self.time_width, self.marker_size, self.full_width = time_width, marker_size, full_width
+        self.pri_clr, self.sec_clr = pri_clr, sec_clr
 
         # This will be a dictionary storing the x-data, y-data, and text-data for each ast plot type
         self.plot_data = None
+
+        # This is a dictionary to store the indices of all traces using a primary color or a secondary color
+        self.all_trace_idx = {}
 
     def _update_trace(self):
         '''
@@ -743,6 +742,9 @@ class Ast_Unres(param.Parameterized):
         }
 
     def plot_time(self, fig, plot_name, time_idx):
+        self.all_trace_idx['pri_clr'] = [self.cache['current_idx']] # Time trace should reset the 'pri_clr' value
+        self.cache['current_idx'] += 1
+
         fig.add_trace(
             go.Scatter(
                 x = self.plot_data[plot_name][0][time_idx],
@@ -753,12 +755,15 @@ class Ast_Unres(param.Parameterized):
                 showlegend = True,
                 legendgrouptitle = dict(text = self.group_name, font_size = styles.FONTSIZES['plot_legendgroup']),
                 line = dict(color = self.pri_clr, width = self.time_width),
-                hovertemplate = ALL_TEMPLATES[plot_name],
+                hovertemplate = styles.ALL_TEMPLATES[plot_name],
                 text = self.plot_data[plot_name][2]
             )
         )
 
     def plot_full(self, fig, plot_name):
+        self.all_trace_idx['sec_clr'] = [self.cache['current_idx']] # Time trace should reset the 'sec_clr' value
+        self.cache['current_idx'] += 1
+
         fig.add_trace(
             go.Scatter(
                 x = self.plot_data[plot_name][0],
@@ -768,12 +773,15 @@ class Ast_Unres(param.Parameterized):
                 legendgroup = self.group_name, 
                 showlegend = False,
                 line = dict(color = self.sec_clr, width = self.full_width, dash = 'dash'),
-                hovertemplate = ALL_TEMPLATES[plot_name],
+                hovertemplate = styles.ALL_TEMPLATES[plot_name],
                 text = self.plot_data[plot_name][2]
             )
         )
 
     def plot_marker(self, fig, plot_name, marker_idx):
+        self.all_trace_idx['pri_clr'].append(self.cache['current_idx']) # Marker trace should append to the 'pri_clr' value. This assumes markers are plotted after time.
+        self.cache['current_idx'] += 1
+
         fig.add_trace(
             go.Scatter(
                 x = [self.plot_data[plot_name][0][marker_idx]],
@@ -818,8 +826,9 @@ class Ast_PS_ResLensed(param.Parameterized):
 
     def __init__(self, cache,
                  group_name,
-                 pri_clr,
-                 time_width, marker_size, **params):
+                 time_width, marker_size, 
+                 pri_clr = None,
+                 **params):
         '''
         cache: a dictionary that should be shared across all traces.
         '''
@@ -827,13 +836,16 @@ class Ast_PS_ResLensed(param.Parameterized):
         super().__init__(**params)
         self.cache = cache
         self.group_name = group_name
-        self.pri_clr = pri_clr
         self.time_width, self.marker_size = time_width, marker_size
+        self.pri_clr = pri_clr
 
         # This will be a dictionary storing the lists of x-data and y-data for each ast plot type
         self.plot_data = None
         self.num_imgs = None
         
+        # This is a dictionary to store the indices of all traces using a primary color or a secondary color
+        self.all_trace_idx = {}
+
     def _update_trace(self):
         '''
         This function should separate the outputs of 'get_resolved_astrometry' into their RA and Dec arrays for each source image.
@@ -872,7 +884,11 @@ class Ast_PS_ResLensed(param.Parameterized):
         show_legend_list = np.repeat(False, self.num_imgs).tolist()
         show_legend_list[0] = True
 
+        self.all_trace_idx['pri_clr'] = [] # Time trace should reset the 'pri_clr' value before plotting
         for i in range(self.num_imgs):
+            self.all_trace_idx['pri_clr'].append(self.cache['current_idx'])
+            self.cache['current_idx'] += 1
+
             fig.add_trace(
                 go.Scattergl(
                     x = self.plot_data[plot_name][0][i][time_idx],
@@ -890,6 +906,9 @@ class Ast_PS_ResLensed(param.Parameterized):
     def plot_marker(self, fig, plot_name, marker_idx):
         # zorder = 1000 forces markers to be in the front, which is needed to nearly Scattergl       
         for i in range(self.num_imgs):
+            self.all_trace_idx['pri_clr'].append(self.cache['current_idx'])
+            self.cache['current_idx'] += 1
+
             fig.add_trace(
                 go.Scatter(
                     x = [self.plot_data[plot_name][0][i][marker_idx]],
@@ -1052,8 +1071,9 @@ class Ast_Lens(param.Parameterized):
 
     def __init__(self, cache,
                  group_name, zorder,
-                 pri_clr, sec_clr,
-                 time_width, full_width, marker_size, **params):
+                 time_width, full_width, marker_size, 
+                 pri_clr = None, sec_clr = None,
+                 **params):
         '''
         cache: a dictionary that should be shared across all traces.
         '''
@@ -1061,12 +1081,15 @@ class Ast_Lens(param.Parameterized):
         super().__init__(**params)
         self.cache = cache
         self.group_name, self.zorder = group_name, zorder
-        self.pri_clr, self.sec_clr = pri_clr, sec_clr
         self.time_width, self.marker_size, self.full_width = time_width, marker_size, full_width
+        self.pri_clr, self.sec_clr = pri_clr, sec_clr
 
         # This will be a dictionary storing the lists of x-data and y-data for each ast plot type
         self.plot_data = None
         self.num_lens = None
+
+        # This is a dictionary to store the indices of all traces using a primary color or a secondary color
+        self.all_trace_idx = {}
 
     def _update_trace(self):
         '''
@@ -1105,7 +1128,11 @@ class Ast_Lens(param.Parameterized):
         show_legend_list = np.repeat(False, self.num_lens).tolist()
         show_legend_list[0] = True
 
+        self.all_trace_idx['pri_clr'] = [] # Time trace should reset the 'pri_clr' value before plotting
         for i in range(self.num_lens):
+            self.all_trace_idx['pri_clr'].append(self.cache['current_idx'])
+            self.cache['current_idx'] += 1
+
             fig.add_trace(
                 go.Scatter(
                     x = self.plot_data[plot_name][0][i][time_idx],
@@ -1116,13 +1143,18 @@ class Ast_Lens(param.Parameterized):
                     showlegend = show_legend_list[i],
                     legendgrouptitle = dict(text = self.group_name, font_size = styles.FONTSIZES['plot_legendgroup']),
                     line = dict(color = self.pri_clr, width = self.time_width),
-                    hovertemplate = ALL_TEMPLATES[plot_name],
+                    hovertemplate = styles.ALL_TEMPLATES[plot_name],
                     text = self.plot_data[plot_name][2]
                 )
             )
 
     def plot_full(self, fig, plot_name):
+        self.all_trace_idx['sec_clr'] = [] # Full trace should reset the 'sec_clr' value before plotting
+
         for i in range(self.num_lens):
+            self.all_trace_idx['sec_clr'].append(self.cache['current_idx'])
+            self.cache['current_idx'] += 1
+
             fig.add_trace(
                 go.Scatter(
                     x = self.plot_data[plot_name][0][i],
@@ -1132,13 +1164,15 @@ class Ast_Lens(param.Parameterized):
                     legendgroup = self.group_name, 
                     showlegend = False,
                     line = dict(color = self.sec_clr, width = self.full_width, dash = 'dash'),
-                    hovertemplate = ALL_TEMPLATES[plot_name],
+                    hovertemplate = styles.ALL_TEMPLATES[plot_name],
                     text = self.plot_data[plot_name][2]
                 )
             )
 
     def plot_marker(self, fig, plot_name, marker_idx):
         for i in range(self.num_lens):
+            self.all_trace_idx['pri_clr'].append(self.cache['current_idx'])
+            self.cache['current_idx'] += 1
             fig.add_trace(
                 go.Scatter(
                     x = [self.plot_data[plot_name][0][i][marker_idx]],

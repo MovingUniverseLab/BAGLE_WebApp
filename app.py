@@ -7,14 +7,14 @@ from panel.viewable import Viewer
 from app_utils import styles, traces
 from app_components import code_display, mod_select, paramztn_select, plots, settings_tabs, param_summary
 
-
+''
 ################################################
 # Initialize Panel
 ################################################
 # Extensions and themes used by panel
-pn.extension('tabulator', 'plotly', 'codeeditor', design = styles.THEMES['page_design'])
+pn.extension('tabulator', 'plotly', 'codeeditor', 'floatpanel', design = styles.THEMES['page_design'])
 pn.config.theme = styles.THEMES['page_theme']
-
+pn.config.raw_css.append(styles.PAGE_RAW_CSS)
 
 ################################################
 # Dashboard - Layout
@@ -39,17 +39,31 @@ class Dashboard(Viewer):
         # Trace information
         self.trace_info = traces.AllTraceInfo(paramztn_info = self.paramztn_info, settings_info = self.settings_tabs)
 
-        # Code section
-        self.code_panel = code_display.CodePanel(paramztn_info = self.paramztn_info, settings_info = self.settings_tabs, trace_info = self.trace_info)
-        
-        # Plot section
-        self.plot_panel = plots.PlotPanel(paramztn_info = self.paramztn_info, settings_info = self.settings_tabs, trace_info = self.trace_info)
+        # Color information
+        self.color_panel = styles.ColorPanel(settings_info = self.settings_tabs, trace_info = self.trace_info)
 
-        self.main_row = pn.FlexBox(
+        # Code section
+        self.code_panel = code_display.CodePanel(paramztn_info = self.paramztn_info, settings_info = self.settings_tabs, 
+                                                 trace_info = self.trace_info)
+
+        # Plot section
+        self.plot_panel = plots.PlotPanel(paramztn_info = self.paramztn_info, settings_info = self.settings_tabs, 
+                                          trace_info = self.trace_info, clr_info = self.color_panel)
+
+        self.main_content = pn.FlexBox(
             self.plot_panel,
             self.code_panel,
             flex_wrap = 'nowrap',
             gap = '0.5%',
+            styles = {'height':'100%', 
+                      'width':'100%', 
+                      'z-index':'100',
+                      'position':'absolute'}
+        )
+
+        self.main_row = pn.FlexBox(
+            self.main_content,
+            self.color_panel,
             styles = {'height':'64%', 
                       'width':'100%'}
         )
@@ -67,13 +81,13 @@ class Dashboard(Viewer):
         db_components = {}
 
         # Set labels for plot boxes
-        for name in self.plot_panel.plot_names:
+        for name in styles.ALL_PLOT_NAMES:
             db_components[name] = self.plot_panel.plot_boxes[name]
 
         # Set label for summary and code display
         db_components['summary'] = self.param_summary.summary_layout
         db_components['code'] = self.code_panel.code_layout
-
+        
         return db_components
     
 
@@ -238,7 +252,7 @@ class BAGLECalc(Viewer):
                       'min-width':'1000px',
                       'max-width':'2500px',
                       'height':'fit-content',
-                      'overflow':'scroll'}
+                      'overflow-y':'scroll'}
         )
 
     def __panel__(self):
@@ -253,6 +267,6 @@ class BAGLECalc(Viewer):
     
 
 ################################################
-# Server App
+# Serve App
 ################################################
 BAGLECalc().servable(title = 'BAGLE Calculator')

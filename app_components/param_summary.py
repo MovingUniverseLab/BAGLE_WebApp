@@ -43,15 +43,16 @@ class ParamSummary(Viewer):
             styles = {'border':f'{styles.CLRS["page_border"]} solid 0.08rem', 
                       'background':styles.CLRS['page_secondary'],
                       'height':'100%',
-                      'overflow':'scroll'}
+                      'overflow-y':'scroll'}
         )
     
         super().__init__(**params)
     
 
-    @pn.depends('settings_info.error_trigger', watch = True)
+    @pn.depends('settings_info.errored_state', watch = True)
     def set_errored_layout(self):
-        self.summary_layout.objects = [indicators.error]
+        if self.settings_info.errored_state == True:
+            self.summary_layout.objects = [indicators.error]
 
 
     def reset_scroll(self):

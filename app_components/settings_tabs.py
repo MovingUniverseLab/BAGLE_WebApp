@@ -21,18 +21,19 @@ class SettingsTabs(Viewer):
     # To be instantiated classes (required inputs)
     paramztn_info = param.ClassSelector(class_ = paramztn_select.ParamztnSelect)
 
-    # Parameters to prevent unwanted updates or trigger updates
+    # Booleans to prevent unwanted updates or trigger updates
         # It might be better to make lock_trigger into a dictionary to store locks for different components
         # Currently not needed, but this could separate Time slider lock and checkbox locks
     lock_trigger, trigger_param_change = param.Boolean(), param.Boolean()
     
     # Parameter to trigger error layouts
-    error_trigger = param.Boolean()
+    errored_state = param.Boolean(default = False)
+
 
     # Parameter to indicate whether sliders are throttled (e.g. when we have a BL model)
-    throttled = param.Boolean()
+    throttled = param.Boolean(default = False)
 
-    # Current parameter being changes. The default 'Time' is just a placeholder
+    # Current parameter being changes
     current_param_change = param.String()
 
     # Dictionary for model parameter values
@@ -140,7 +141,7 @@ class SettingsTabs(Viewer):
         self.sliders_layout = pn.Column(
             # objects = self.sliders_content,
             name = 'Parameter Sliders',
-            styles = {'overflow':'scroll', 
+            styles = {'overflow-y':'scroll', 
                       'height':'100%', 
                       'border-top':f'{styles.CLRS["page_border"]} solid 0.08rem'}
         )
@@ -211,8 +212,10 @@ class SettingsTabs(Viewer):
         )
         self.genrl_plot_checkbox = pn.widgets.CheckBoxGroup(
             options = {'Show Title': 'title',
+                       'Show Grid Lines': 'gridlines',
                        'Show Time Markers': 'marker', 
-                       'Show Full Traces': 'full_trace'},
+                       'Show Full Traces': 'full_trace',
+                       'Show Color Panel': 'color'},
             inline = False, 
             align = 'center'
         )
@@ -301,7 +304,7 @@ class SettingsTabs(Viewer):
         # This will be populated by 'set_default_tabs'
         self.settings_layout = pn.Column(
             name = 'Other Settings',
-            styles = {'overflow':'scroll'}
+            styles = {'overflow-y':'scroll'}
         )
 
 
@@ -333,7 +336,7 @@ class SettingsTabs(Viewer):
         self.refs_cites = pn.FlexBox(
             name = 'References/Citations', 
             sizing_mode = 'stretch_both', 
-            styles = {'overflow':'scroll'}
+            styles = {'overflow-y':'scroll'}
         )
 
 
@@ -365,18 +368,29 @@ class SettingsTabs(Viewer):
             component.disabled = False
 
         self.tabs_layout.stylesheets = [styles.BASE_TABS_STYLESHEET]
+    
 
+    def set_param_errored_layout(self, undo):        
+        if (undo == True) and (self.errored_state == True):
+            self.set_base_layout()
 
-    def set_param_errored_layout(self, undo):
-        event_slider = self.param_sliders[self.current_param_change]
+            event_slider = self.param_sliders[self.current_param_change]
+            event_slider.stylesheets = [styles.BASE_SLIDER_STYLESHEET]
 
-        if undo == False:
+            for param in self.param_sliders.keys():
+                self.param_sliders[param].disabled = False
+
+            self.errored_state = False
+
+        elif undo == False:
             self.tabs_layout.stylesheets = [styles.ERRORED_TABS_STYLESHEET]
             self.tabs_layout.active = 0
 
             # Disable all parameters except the one causing the error
             for param in self.param_sliders.keys():
                 self.param_sliders[param].disabled = True
+
+            event_slider = self.param_sliders[self.current_param_change]
             event_slider.param.update(disabled = False, stylesheets = [styles.ERRORED_SLIDER_STYLESHEET])
 
             # Disable all tables and checkboxes
@@ -384,23 +398,17 @@ class SettingsTabs(Viewer):
             for cb in self.all_checkboxes:
                 cb.disabled = True
 
-            self.error_trigger = not self.error_trigger
-
-        else:
-            self.set_base_layout()
-            event_slider.stylesheets = [styles.BASE_SLIDER_STYLESHEET]
-
-            for param in self.param_sliders.keys():
-                self.param_sliders[param].disabled = False
+            self.errored_state = True
 
 
-    @pn.depends('slider_error_msg.object', watch = True)
-    def set_slider_errored_layout(self):
-        if self.slider_error_msg.object == None:
+    def set_slider_errored_layout(self, undo):
+        if (undo == True) and (self.errored_state == True):
             self.set_base_layout()
             self.sliders_layout.objects = self.sliders_content
 
-        else:
+            self.errored_state = False
+
+        elif undo == False:
             self.tabs_layout.stylesheets = [styles.ERRORED_TABS_STYLESHEET]
             self.sliders_layout.objects = [self.slider_error_msg]
 
@@ -410,8 +418,7 @@ class SettingsTabs(Viewer):
             for cb in self.all_checkboxes:
                 cb.disabled = True
 
-            self.error_trigger = not self.error_trigger
-
+            self.errored_state = True
 
     def _check_errors(self, param, param_val, min_val, max_val, step_val):
         error_html = ''''''
@@ -440,9 +447,12 @@ class SettingsTabs(Viewer):
                     {error_html}
                 </ul>
             '''
-            
+            self.set_slider_errored_layout(undo = False)
             # Force the function that called this function to exit
             sys.exit()
+
+        else:
+            self.set_slider_errored_layout(undo = True)
 
 
     def set_default_tabs(self):
@@ -496,7 +506,8 @@ class SettingsTabs(Viewer):
         db_value = list(set(db_options.values()) - {'ast_ra', 'ast_dec', 'code'})
         self.dashboard_checkbox.param.update(options = db_options, value = db_value)
 
-        self.genrl_plot_checkbox.param.update(value = ['title', 'marker', 'full_trace'])
+        genrl_plot_value = set(self.genrl_plot_checkbox.options.values()) - {'full_trace', 'color'}
+        self.genrl_plot_checkbox.param.update(value = list(genrl_plot_value))
         
         self.lock_trigger = False
         
@@ -604,7 +615,7 @@ class SettingsTabs(Viewer):
             # Function triggered by a slider
             if event != ():
                 # Regex is used to get just the parameter name and not the unit
-                param_name = re.match('[^\W\\[]*', event[0].obj.name).group()
+                param_name = re.match(r'[^\W\\[]*', event[0].obj.name).group()
 
                 self.current_param_change = param_name
 

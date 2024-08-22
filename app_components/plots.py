@@ -19,17 +19,20 @@ class PlotPanel(Viewer):
     paramztn_info = param.ClassSelector(class_ = paramztn_select.ParamztnSelect)
     settings_info = param.ClassSelector(class_ = settings_tabs.SettingsTabs)
     trace_info = param.ClassSelector(class_ = traces.AllTraceInfo)
-    
-    # Labels for plot
-    plot_names = styles.PHOT_PLOT_NAMES + styles.AST_PLOT_NAMES
+    clr_info = param.ClassSelector(class_ = styles.ColorPanel)
 
 
     ########################
     # General Methods
     ########################
     def __init__(self, **params):
-        # Set up initial figure formats, plotly panes, and plot flexboxes
-        self.init_figs, self.plotly_panes, self.plot_boxes = self.make_plot_components(self.plot_names)
+        super().__init__(**params)
+        # Set up initial figure formats with default theme
+        self.base_figs = {}
+        self._update_base_figs()
+
+        # Make plotly panes, and plot flexboxes
+        self.plotly_panes, self.plot_boxes = self.make_plot_components()
 
         # Plot row layout
         self.plot_layout = pn.FlexBox(
@@ -37,14 +40,13 @@ class PlotPanel(Viewer):
             flex_wrap = 'nowrap',
             gap = f'{2 * (50 - styles.PLOT_WIDTH)}%',
             sizing_mode = 'stretch_both',
-            styles = {'overflow':'scroll',
+            styles = {'overflow-x':'scroll',
                       'border':f'{styles.CLRS["page_border"]} solid 0.01rem',
                       'border-top':'transparent',
                       'border-bottom':'transparent'}
         )
     
         # Define dependencies
-        super().__init__(**params)
         self.settings_info.param_sliders['Num_pts'].param.watch(self._update_all_plots, 'value_throttled')
 
         # Note: precedence here makes sure that 'self._update_phot_plots' happens after 'self.trace_info._update_gp_samps'
@@ -53,35 +55,23 @@ class PlotPanel(Viewer):
         self.settings_info.param_sliders['Time'].param.watch(self._update_phot_plots, 'value')
         self.settings_info.param_sliders['Time'].param.watch(self._update_ast_plots, 'value')
 
+        for clr_picker in self.clr_info.fig_clr_pickers.values():
+            clr_picker.param.watch(self._update_base_figs, 'value')
 
-    def make_plot_components(self, plot_names):
-        init_figs, plotly_panes, plot_boxes = {}, {}, {}
-        for name in plot_names:
-            # Make initial figure formats
-            fig = go.Figure()
-            fig.update_xaxes(
-                title = styles.FORMAT_DICT[name][1][0],
-                title_font_size = styles.FONTSIZES['plot_axes_labels'],
-                ticks = 'outside', tickformat = '000',
-                color = styles.CLRS['txt_primary'],
-                gridcolor = styles.CLRS['plot_gridline'], zeroline = False
-            )
-            fig.update_yaxes(
-                title = styles.FORMAT_DICT[name][1][1],
-                title_font_size = styles.FONTSIZES['plot_axes_labels'],
-                ticks = 'outside', tickformat = '000',
-                color = styles.CLRS['txt_primary'],
-                gridcolor = styles.CLRS['plot_gridline'], zeroline = False
-            )
-            fig.update_layout(
-                plot_bgcolor = styles.CLRS['page_secondary'], 
-                paper_bgcolor = styles.CLRS['page_secondary'],
-                font_size = styles.FONTSIZES['plot_axes_ticks'],
-                legend = dict(grouptitlefont_color = styles.CLRS['txt_primary'], itemsizing = 'constant'),
-                margin = dict(l = 75, r = 5, t = 30, b = 55)
-            )
-            init_figs[name] = fig
+        for trace_key in self.clr_info.trace_clr_pickers.keys():
+            if 'clr_cycle' not in self.clr_info.trace_clr_pickers[trace_key].keys():
+                all_clr_pickers = self.clr_info.trace_clr_pickers[trace_key].values()
+            else:
+                all_clr_pickers = self.clr_info.trace_clr_pickers[trace_key]['clr_cycle']
+            
+            for clr_picker in all_clr_pickers:
+                clr_picker.param.watch(self._update_trace_clrs, 'value')
+        
+        self.clr_info.theme_dropdown.param.watch(self.set_plot_theme, 'value')
 
+    def make_plot_components(self):
+        plotly_panes, plot_boxes = {}, {}
+        for name in styles.ALL_PLOT_NAMES:
             # Make plotly pane
             plotly_configs = {
                 'toImageButtonOptions': {'filename': name, 'scale': 3}, 
@@ -104,23 +94,165 @@ class PlotPanel(Viewer):
                 styles = styles.BASE_PLOTBOX_STYLES
             )
 
-         # Reverse y-axis for photometry magnitude
-        init_figs['phot'].update_yaxes(autorange = 'reversed')
+        return plotly_panes, plot_boxes
+        
 
-        return init_figs, plotly_panes, plot_boxes
-
-
-    @pn.depends('settings_info.error_trigger', watch = True)
+    @pn.depends('settings_info.errored_state', watch = True)
     def set_errored_layout(self):
-        for name in self.plot_names:
-            self.plot_boxes[name].objects = [indicators.error]
+        if self.settings_info.errored_state == True:
+            for name in styles.ALL_PLOT_NAMES:
+                self.plot_boxes[name].objects = [indicators.error]
 
 
     def set_loading_layout(self):
-        for name in self.plot_names:
+        for name in styles.ALL_PLOT_NAMES:
             self.plot_boxes[name].objects = [indicators.loading]
 
 
+    ########################
+    # Coloring Methods
+    ######################## 
+    @pn.depends('settings_info.genrl_plot_checkbox.value', watch = True)
+    def _update_base_figs(self, *event):
+        # Note: '*event' is used for the dependencies of the color pickers in 'clr_info.fig_clr_pickers'
+
+        if self.clr_info.lock_trigger == False:
+
+            # Create color dictionary
+            clr_dict = {key:self.clr_info.fig_clr_pickers[key].value for key in self.clr_info.fig_clr_pickers.keys()}
+
+            # Create new base figures
+            for name in styles.ALL_PLOT_NAMES:
+
+                # Make initial figure formats
+                fig = go.Figure()
+                fig.update_xaxes(
+                    title = styles.ALL_FORMATS[name][1][0],
+                    title_font_size = styles.FONTSIZES['plot_axes_labels'],
+                    ticks = 'outside', tickformat = '000', 
+                    tickcolor = clr_dict['ticks'], 
+                    tickfont_color = clr_dict['ticks'], 
+                    color = clr_dict['labels'], 
+                    gridcolor = clr_dict['gridlines'], zeroline = False
+                )
+                fig.update_yaxes(
+                    title = styles.ALL_FORMATS[name][1][1],
+                    title_font_size = styles.FONTSIZES['plot_axes_labels'],
+                    ticks = 'outside', tickformat = '000',
+                    tickcolor = clr_dict['ticks'], 
+                    tickfont_color = clr_dict['ticks'], 
+                    color = clr_dict['labels'], 
+                    gridcolor = clr_dict['gridlines'], zeroline = False
+                )
+                fig.update_layout(
+                    plot_bgcolor = clr_dict['plot_bg'], 
+                    paper_bgcolor = clr_dict['paper_bg'], 
+                    font_size = styles.FONTSIZES['plot_axes_ticks'],
+                    legend = dict(grouptitlefont_color = clr_dict['labels'], itemsizing = 'constant'),
+                    margin = dict(l = 75, r = 5, t = 30, b = 55),
+                    title = dict(y = 0.98, font = dict(color = clr_dict['labels'], size = styles.FONTSIZES['plot_title']))
+                )
+                self.base_figs[name] = fig
+
+                # Check if title/gridlines should be shown
+                if 'title' in self.settings_info.genrl_plot_checkbox.value:
+                    fig.update_layout(title_text = styles.ALL_FORMATS[name][0])
+
+                if 'gridlines' not in self.settings_info.genrl_plot_checkbox.value:
+                    fig.update_xaxes(showgrid = False)
+                    fig.update_yaxes(showgrid = False)
+                    
+            # Reverse y-axis for photometry magnitude
+            for name in styles.PHOT_PLOT_NAMES:
+                self.base_figs[name].update_yaxes(autorange = 'reversed')
+
+            # Change layout of currently displayed figures to new base figures
+                # Note: 'settings_info.lock_trigger' is used here to guard against 'settings_info.genrl_plot_checkbox' reset, which will lead to a change before any figures are displayed
+            if self.settings_info.lock_trigger == False:
+                for plot_name in (self.trace_info.selected_phot_plots + self.trace_info.selected_ast_plots):
+                    self.plotly_panes[plot_name].object['layout'] = self.base_figs[plot_name]['layout']
+
+
+    def _update_trace_clrs(self, *event):
+        '''
+        This function is always triggered by a single color picker
+        '''
+        if self.clr_info.lock_trigger == False:
+
+            clr_picker_id = eval(event[0].obj.description) # This should be a tuple of the form (trace key, color type, ...)
+            trace_key, clr_type = clr_picker_id[0], clr_picker_id[1]
+            all_trace_idx = self.trace_info.all_traces[trace_key].all_trace_idx # Get the figure indices that are associated with each type of trace
+
+            # Check if the trace is in a photometry or an astrometry plot
+            if trace_key in self.trace_info.main_phot_keys + self.trace_info.extra_phot_keys:
+                trace_plot_names = self.trace_info.selected_phot_plots
+            else:
+                trace_plot_names = self.trace_info.selected_ast_plots
+
+            # Check if color type is pri_clr, sec_clr, or clr_cycle
+                # clr_cycle is a special case currently used for only GP samples
+            if clr_type != 'clr_cycle':
+                trace_change_idx = all_trace_idx[clr_type]
+
+                # Change the attribute of the trace to keep the color change when updating plot
+                setattr(self.trace_info.all_traces[trace_key], clr_type, event[0].obj.value)
+
+            else:
+                # Check if color pickers for the color cycle are linked
+                if self.clr_info.clr_cycle_tools[trace_key, 'link_switch'].value == True:
+                    # Lock trigger to prevent looping
+                    self.clr_info.lock_trigger = True
+                    
+                    # Change value of each color picker
+                    for clr_picker in self.clr_info.trace_clr_pickers[trace_key]['clr_cycle']:
+                        clr_picker.value = event[0].obj.value
+
+                    self.clr_info.lock_trigger = False
+
+                    # This should be all trace indices associated with this trace key
+                    trace_change_idx = set().union(*all_trace_idx.values())
+
+                    # Change the attribute of the trace to keep the color change when updating plot
+                    self.trace_info.all_traces[trace_key].clr_cycle = [event[0].obj.value] * len(self.trace_info.all_traces[trace_key].clr_cycle)
+
+                else:
+                    # Index for which part of the color cycle was changed
+                    cycle_idx = clr_picker_id[2]    
+                    trace_change_idx = all_trace_idx['clr_cycle', cycle_idx]
+
+                    # Change the attribute of the trace to keep the color change when updating plot
+                    self.trace_info.all_traces[trace_key].clr_cycle[cycle_idx] = event[0].obj.value
+
+            # Change color of relevant traces that are currently displayed
+            for plot_name in trace_plot_names:
+                fig_traces = self.plotly_panes[plot_name].object.data
+                for idx in trace_change_idx:
+                    trace = fig_traces[idx]
+                    trace.line.color = event[0].obj.value
+                    trace.marker.color = event[0].obj.value
+
+    # @pn.depends('clr_info.theme_dropdown.value', watch = True)
+    def set_plot_theme(self, *event):
+        theme_dict = self.clr_info.theme_dropdown.value
+        if theme_dict != 'None':
+            # Change theme of traces
+            self.trace_info.set_trace_theme(theme_dict)
+
+            # Change theme of the figure
+                # Note: the figure color pickers should have already been changed through styles
+                # Also, the lock here is used to prevent repeated patches. Although, this isn't too much of a problem since Panel knows to drop repeated patches.
+            self.settings_info.lock_trigger = True
+            self._update_base_figs()
+            self.settings_info.lock_trigger = False
+
+            # Replot everything
+            self.set_loading_layout()
+            self._update_phot_plots()
+            self._update_ast_plots()
+
+    ########################
+    # Plotting Methods
+    ######################## 
     @pn.depends('settings_info.trigger_param_change', watch = True)
     def _update_all_plots(self, *event):
         # Note: '*event' is needed for 'Num_pts' watcher
@@ -128,39 +260,32 @@ class PlotPanel(Viewer):
         # Note: lock needed to guard against Num_pts slider reset because trigger_param_change also triggers the update
             # See chain: set_default_tabs => _update_sliders => _update_param_values in settings_tabs.SettingsTabs class
         if self.settings_info.lock_trigger == False:
-            print('UPDATING ALL PLOTS:::::')
 
-            # # Check for bad parameter combination (e.g. dL > dS)  
-            # try:
-            # Check if 'Num_pts' slider is disabled, if so, this implies that most other sliders are also disabled
-                # Note: this assumes that the 'Num_pts' slider will never cause an exception, which should be true
-            if self.settings_info.param_sliders['Num_pts'].disabled == True:
+            # Check for bad parameter combination (e.g. dL > dS)  
+            try:
                 self.settings_info.set_param_errored_layout(undo = True)
 
-            # Check if throttled Num_pts was the event
-            if (event != ()) and (event[0].obj.name == self.settings_info.param_sliders['Num_pts'].name):
-                self.set_loading_layout()
-            
-            # Check if parameter sliders are throttled
-            elif self.settings_info.throttled == True:
-                self.set_loading_layout()
-            
-            # Update traces
-            # Note: It's possible to set the 'trigger_param_change' and 'Num_pts' dependency directly in trace.py for this function.
-                # However, I chose to put it here to make error catching easier.
-            self.trace_info.update_all_traces()
+                # Check if throttled Num_pts was the event
+                if (event != ()) and (event[0].obj.name == self.settings_info.param_sliders['Num_pts'].name):
+                    self.set_loading_layout()
+                
+                # Check if parameter sliders are throttled
+                elif self.settings_info.throttled == True:
+                    self.set_loading_layout()
+                
+                # Update traces
+                # Note: It's possible to set the 'trigger_param_change' and 'Num_pts' dependency directly in trace.py for this function.
+                    # However, I chose to put it here to make error catching easier.
+                self.trace_info.update_all_traces()
 
-            # Update plots
-            self._update_phot_plots()
-            self._update_ast_plots()
+                # Update plots
+                self._update_phot_plots()
+                self._update_ast_plots()
+    
+            except:
+                self.settings_info.set_param_errored_layout(undo = False)
 
-            # except:
-            #     self.settings_info.set_param_errored_layout(undo = False)
 
-
-    ########################
-    # Photometry Methods
-    ######################## 
     @pn.depends('settings_info.dashboard_checkbox.value', 'settings_info.phot_checkbox.value', 'settings_info.genrl_plot_checkbox.value', watch = True)
     def _update_phot_plots(self, *event):
         # Note: '*event' is needed for 'Time' and 'Num_samps' watcher
@@ -168,21 +293,19 @@ class PlotPanel(Viewer):
         # Check if photometry is selected in dashboard
         # Check for locks. This is needed to guard against checkbox resets
         if (len(self.trace_info.selected_phot_plots) != 0) and (self.settings_info.lock_trigger == False):
-            print('UPDATING PHOTOMETRY PLOT')
             time = self.trace_info.cache['time']
 
             # Get times that are less than or equal to Time slider
             time_idx = np.where(time <= self.settings_info.param_sliders['Time'].value)[0]
 
-            # Create photometry figure
-            phot_fig = go.Figure(self.init_figs['phot'])
+            # This part may need to be changed if we add more types of photometry plots
+                # e.g. we could loop through names in styles.PHOT_PLOT_NAMES
 
-            # Check if title should be shown
-            if 'title' in self.settings_info.genrl_plot_checkbox.value:
-                phot_fig.update_layout(
-                    title = dict(text = styles.FORMAT_DICT['phot'][0], y = 0.98,
-                    font = dict(color = styles.CLRS['txt_primary'], size = styles.FONTSIZES['plot_title'])),
-                )
+            # Create photometry figure
+            phot_fig = go.Figure(self.base_figs['phot'])
+
+            # Reset the current trace index before plotting
+            self.trace_info.cache['current_idx'] = 0
 
             selected_trace_keys = set(self.trace_info.main_phot_keys + self.trace_info.extra_phot_keys)
 
@@ -227,9 +350,6 @@ class PlotPanel(Viewer):
                 self.plot_boxes['phot'].objects = [self.plotly_panes['phot']]
 
 
-    ########################
-    # Astrometry Methods
-    ######################## 
     @pn.depends('settings_info.dashboard_checkbox.value', 'settings_info.ast_checkbox.value', 'settings_info.genrl_plot_checkbox.value', watch = True)
     def _update_ast_plots(self, *event):
         # Note: '*event' is needed for 'Time' watcher
@@ -237,7 +357,6 @@ class PlotPanel(Viewer):
         # Check if astrometry is selected in dashboard
         # Check for locks. This is needed to guard against checkbox resets
         if (len(self.trace_info.selected_ast_plots) != 0) and (self.settings_info.lock_trigger == False):
-            print('UPDATING ASTROMETRY PLOT')
             time = self.trace_info.cache['time']
 
             # Get times that are less than or equal to Time slider
@@ -245,14 +364,10 @@ class PlotPanel(Viewer):
 
             for plot_name in self.trace_info.selected_ast_plots:
                 # Create figure
-                ast_fig = go.Figure(self.init_figs[plot_name])
+                ast_fig = go.Figure(self.base_figs[plot_name])
 
-                # Check if title should be shown
-                if 'title' in self.settings_info.genrl_plot_checkbox.value:
-                    ast_fig.update_layout(
-                        title = dict(text = styles.FORMAT_DICT[plot_name][0], y = 0.98,
-                        font = dict(color = styles.CLRS['txt_primary'], size = styles.FONTSIZES['plot_title'])),
-                    )
+                # Reset the current trace index before plotting
+                self.trace_info.cache['current_idx'] = 0
 
                 # Get all trace keys that are to be plotted
                 selected_trace_keys = set(self.trace_info.extra_ast_keys + self.trace_info.main_ast_keys)
@@ -303,6 +418,9 @@ class PlotPanel(Viewer):
                         self.plot_boxes[plot_name].objects = [self.plotly_panes[plot_name]]
 
 
+    ########################
+    # Panel Component
+    ######################## 
     def __panel__(self):
         return self.plot_layout
     

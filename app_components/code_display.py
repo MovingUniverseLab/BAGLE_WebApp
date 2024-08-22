@@ -59,9 +59,10 @@ class CodePanel(Viewer):
             self.samps_watcher = self.settings_info.param_sliders['Num_samps'].param.watch(self._update_code_str, 'value')
 
 
-    @pn.depends('settings_info.error_trigger', watch = True)
+    @pn.depends('settings_info.errored_state', watch = True)
     def set_errored_layout(self):
-        self.code_layout.objects = [indicators.error]
+        if self.settings_info.errored_state == True:
+            self.code_layout.objects = [indicators.error]
 
 
     def reset_scroll(self):
