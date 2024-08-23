@@ -9,7 +9,7 @@ from panel.viewable import Viewer
 import param
 
 from app_utils import indicators, traces, styles
-from app_components import paramztn_select, settings_tabs
+from app_components import paramztn_select, settings_tabs, color_panel
 
 
 ################################################
@@ -19,7 +19,7 @@ class PlotPanel(Viewer):
     paramztn_info = param.ClassSelector(class_ = paramztn_select.ParamztnSelect)
     settings_info = param.ClassSelector(class_ = settings_tabs.SettingsTabs)
     trace_info = param.ClassSelector(class_ = traces.AllTraceInfo)
-    clr_info = param.ClassSelector(class_ = styles.ColorPanel)
+    clr_info = param.ClassSelector(class_ = color_panel.ColorPanel)
 
 
     ########################
@@ -88,7 +88,7 @@ class PlotPanel(Viewer):
 
             # Make flexbox for plotly pane
             plot_boxes[name] = pn.FlexBox(
-                indicators.loading,
+                indicators.component_loading,
                 justify_content = 'center',
                 align_content = 'center',
                 styles = styles.BASE_PLOTBOX_STYLES
@@ -106,7 +106,7 @@ class PlotPanel(Viewer):
 
     def set_loading_layout(self):
         for name in styles.ALL_PLOT_NAMES:
-            self.plot_boxes[name].objects = [indicators.loading]
+            self.plot_boxes[name].objects = [indicators.component_loading]
 
 
     ########################

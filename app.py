@@ -4,8 +4,8 @@
 import panel as pn
 from panel.viewable import Viewer
 
-from app_utils import styles, traces
-from app_components import code_display, mod_select, paramztn_select, plots, settings_tabs, param_summary
+from app_utils import styles, traces, indicators
+from app_components import mod_select, paramztn_select, settings_tabs, param_summary, color_panel, plots, code_display
 
 ''
 ################################################
@@ -40,7 +40,7 @@ class Dashboard(Viewer):
         self.trace_info = traces.AllTraceInfo(paramztn_info = self.paramztn_info, settings_info = self.settings_tabs)
 
         # Color information
-        self.color_panel = styles.ColorPanel(settings_info = self.settings_tabs, trace_info = self.trace_info)
+        self.color_panel = color_panel.ColorPanel(settings_info = self.settings_tabs, trace_info = self.trace_info)
 
         # Code section
         self.code_panel = code_display.CodePanel(paramztn_info = self.paramztn_info, settings_info = self.settings_tabs, 
@@ -106,6 +106,7 @@ class Dashboard(Viewer):
             # Note: 'set_default_tabs' leads to 'trigger_param_change', which will update everything else (e.g. plots, summary table, etc.)
             # Note: 'selected_paramztn' dependency of set_default_tabs could also be put in settings_tabs.py, 
                 # but I chose to put it here to update everything before dashboard gets populated. This is the same with 'set_loading_layout' and 'reset_scroll'.
+            self.dashboard_layout.objects = [indicators.startup]
             self.param_summary.reset_scroll()
             self.code_panel.reset_scroll()
             self.plot_panel.set_loading_layout()
@@ -269,4 +270,5 @@ class BAGLECalc(Viewer):
 ################################################
 # Serve App
 ################################################
+# Used to serve with panel serve in command line
 BAGLECalc().servable(title = 'BAGLE Calculator')
