@@ -47,11 +47,13 @@ class ParamSummary(Viewer):
         )
     
         super().__init__(**params)
-    
+        # set dependencies
+        for error_bool in self.settings_info.errored_state.values():
+            error_bool.param.watch(self.set_errored_layout, 'value')
 
-    @pn.depends('settings_info.errored_state', watch = True)
-    def set_errored_layout(self):
-        if self.settings_info.errored_state == True:
+
+    def set_errored_layout(self, *event):
+        if event[0].obj.value == True:
             self.summary_layout.objects = [indicators.error]
 
 

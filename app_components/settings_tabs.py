@@ -17,6 +17,10 @@ from app_components import paramztn_select
 ################################################
 # Dashboard - Parameter Tabs
 ################################################
+# This is a class to trigger error layouts
+class ErrorBoolean(Viewer): 
+    value = param.Boolean(default = False)
+
 class SettingsTabs(Viewer):
     # To be instantiated classes (required inputs)
     paramztn_info = param.ClassSelector(class_ = paramztn_select.ParamztnSelect)
@@ -25,10 +29,6 @@ class SettingsTabs(Viewer):
         # It might be better to make lock_trigger into a dictionary to store locks for different components
         # Currently not needed, but this could separate Time slider lock and checkbox locks
     lock_trigger, trigger_param_change = param.Boolean(), param.Boolean()
-    
-    # Parameter to trigger error layouts
-    errored_state = param.Boolean(default = False)
-
 
     # Parameter to indicate whether sliders are throttled (e.g. when we have a BL model)
     throttled = param.Boolean(default = False)
@@ -61,6 +61,12 @@ class SettingsTabs(Viewer):
     
 
     def __init__(self, **params):
+        # Dictionary to track what caused errors and to trigger error layouts
+        self.errored_state = {
+            'params': ErrorBoolean(),
+            'slider_settings': ErrorBoolean()
+        }
+
         ###########################################
         # Tab 1 - Sliders
         ###########################################
@@ -370,8 +376,8 @@ class SettingsTabs(Viewer):
         self.tabs_layout.stylesheets = [styles.BASE_TABS_STYLESHEET]
     
 
-    def set_param_errored_layout(self, undo):        
-        if (undo == True) and (self.errored_state == True):
+    def set_param_errored_layout(self, undo):    
+        if (undo == True) and (self.errored_state['params'].value == True):
             self.set_base_layout()
 
             event_slider = self.param_sliders[self.current_param_change]
@@ -380,7 +386,7 @@ class SettingsTabs(Viewer):
             for param in self.param_sliders.keys():
                 self.param_sliders[param].disabled = False
 
-            self.errored_state = False
+            self.errored_state['params'].value = False
 
         elif undo == False:
             self.tabs_layout.stylesheets = [styles.ERRORED_TABS_STYLESHEET]
@@ -398,15 +404,15 @@ class SettingsTabs(Viewer):
             for cb in self.all_checkboxes:
                 cb.disabled = True
 
-            self.errored_state = True
+            self.errored_state['params'].value = True
 
 
-    def set_slider_errored_layout(self, undo):
-        if (undo == True) and (self.errored_state == True):
+    def set_slider_errored_layout(self, undo): 
+        if (undo == True) and (self.errored_state['slider_settings'].value == True):
             self.set_base_layout()
             self.sliders_layout.objects = self.sliders_content
 
-            self.errored_state = False
+            self.errored_state['slider_settings'].value = False
 
         elif undo == False:
             self.tabs_layout.stylesheets = [styles.ERRORED_TABS_STYLESHEET]
@@ -418,7 +424,8 @@ class SettingsTabs(Viewer):
             for cb in self.all_checkboxes:
                 cb.disabled = True
 
-            self.errored_state = True
+            self.errored_state['slider_settings'].value = True
+
 
     def _check_errors(self, param, param_val, min_val, max_val, step_val):
         error_html = ''''''

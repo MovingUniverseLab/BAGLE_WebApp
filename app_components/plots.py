@@ -76,6 +76,9 @@ class PlotPanel(Viewer):
         
         self.clr_info.theme_dropdown.param.watch(self.set_plot_theme, 'value')
 
+        for error_bool in self.settings_info.errored_state.values():
+            error_bool.param.watch(self.set_errored_layout, 'value')
+
 
     def make_plot_components(self):
         plotly_panes, plot_boxes = {}, {}
@@ -126,15 +129,14 @@ class PlotPanel(Viewer):
             self.time_fn_dependency['watchers'].append(watcher)
 
 
-    @pn.depends('settings_info.errored_state', watch = True)
-    def set_errored_layout(self):
-        if self.settings_info.errored_state == True:
+    def set_errored_layout(self, *event):
+        if event[0].obj.value == True:
             for name in styles.ALL_PLOT_NAMES:
                 self.plot_boxes[name].objects = [indicators.error]
 
 
     def set_loading_layout(self):
-        for i, name in enumerate(styles.ALL_PLOT_NAMES):
+        for name in styles.ALL_PLOT_NAMES:
             self.plot_boxes[name].objects = [indicators.component_loading]
 
 

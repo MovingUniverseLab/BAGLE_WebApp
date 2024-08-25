@@ -6,6 +6,7 @@ import itertools
 import plotly.graph_objects as go
 import panel as pn
 import param
+import threading
 
 from bagle import model
 import celerite
@@ -349,7 +350,8 @@ class AllTraceInfo(param.Parameterized):
             # Update relevant phot traces
                 # Note the 'gp_prior' is excluded because we would have already updated it's photometry
             for trace_key in set(self.main_phot_keys) - {'gp_prior'}:
-                self.all_traces[trace_key]._update_trace()
+                trace_thread = threading.Thread(self.all_traces[trace_key]._update_trace())
+                trace_thread.start()
             
 
     def _update_gp_samps(self, *event):
@@ -388,7 +390,8 @@ class AllTraceInfo(param.Parameterized):
 
                 # Update relevant ast traces
                 for trace_key in self.main_ast_keys:
-                    self.all_traces[trace_key]._update_trace()
+                    trace_thread = threading.Thread(self.all_traces[trace_key]._update_trace())
+                    trace_thread.start()
 
 
     @pn.depends('settings_info.ast_checkbox.value', watch = True)
@@ -407,7 +410,8 @@ class AllTraceInfo(param.Parameterized):
                 
                 # Update relevant ast traces
                 for trace_key in extra_ast_keys:
-                    self.all_traces[trace_key]._update_trace()
+                    trace_thread = threading.Thread(self.all_traces[trace_key]._update_trace())
+                    trace_thread.start()
 
                 self.extra_ast_keys = extra_ast_keys
 

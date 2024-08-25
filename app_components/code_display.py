@@ -46,7 +46,10 @@ class CodePanel(Viewer):
         
         # Set dependencies
         self.settings_info.param_sliders['Num_pts'].param.watch(self._update_code_str, 'value')
- 
+
+        for error_bool in self.settings_info.errored_state.values():
+            error_bool.param.watch(self.set_errored_layout, 'value')
+
 
     @pn.depends('paramztn_info.selected_paramztn', watch = True)
     def set_samps_dependency(self):
@@ -59,9 +62,8 @@ class CodePanel(Viewer):
             self.samps_watcher = self.settings_info.param_sliders['Num_samps'].param.watch(self._update_code_str, 'value')
 
 
-    @pn.depends('settings_info.errored_state', watch = True)
-    def set_errored_layout(self):
-        if self.settings_info.errored_state == True:
+    def set_errored_layout(self, *event):
+        if event[0].obj.value == True:
             self.code_layout.objects = [indicators.error]
 
 

@@ -22,6 +22,7 @@ class ColorPanel(Viewer):
         'gridlines': 'Plot Grid Lines',
     }
 
+
     def __init__(self, **params):
         self.lock_trigger = False # Boolean to prevetn unwanted updates
 
@@ -108,6 +109,10 @@ class ColorPanel(Viewer):
             for clr_picker in all_clr_pickers:
                 clr_picker.param.watch(self.clear_theme, 'value', precedence = 10)
 
+        for error_bool in self.settings_info.errored_state.values():
+            error_bool.param.watch(self.set_errored_layout, 'value')
+
+
     def make_clr_type_labels(self):
         # Note: A color cycle label is currently not needed
         main_clr_types = ['Primary (Time Trace)', 'Secondary (Full Trace)']
@@ -122,6 +127,7 @@ class ColorPanel(Viewer):
                 )
         return main_clr_types
     
+
     @pn.depends('theme_dropdown.value', watch = True)
     def set_clr_picker_theme(self):
         theme_dict = self.theme_dropdown.value
@@ -142,6 +148,7 @@ class ColorPanel(Viewer):
                         self.trace_clr_pickers[trace_key]['clr_cycle'][i].value = clr
 
             self.lock_trigger = False
+
 
     def make_fig_clrs_layout(self):
         fig_clr_pickers = {}
@@ -173,6 +180,7 @@ class ColorPanel(Viewer):
             )
 
         return fig_clr_pickers, fig_clrs_layout
+
 
     def make_trace_clrs_layout(self):
         phot_clr_rows, ast_clr_rows = {}, {}
@@ -291,14 +299,15 @@ class ColorPanel(Viewer):
 
         return trace_clr_pickers, clr_cycle_tools, phot_clr_rows, ast_clr_rows, phot_clrs_layout, ast_clrs_layout
 
-    @pn.depends('settings_info.errored_state', watch = True)
-    def set_errored_layout(self):
-        if self.settings_info.errored_state == False:
+
+    def set_errored_layout(self, *event):
+        if event[0].obj.value == False:
             for widget in self.all_widgets:
                 widget.disabled = False
         else:
             for widget in self.all_widgets:
                 widget.disabled = True
+
 
     def clear_theme(self, *event):
         '''
@@ -306,6 +315,7 @@ class ColorPanel(Viewer):
         '''
         if self.lock_trigger == False:
             self.theme_dropdown.value = 'None'
+
 
     @pn.depends('settings_info.genrl_plot_checkbox.value',
                 'settings_info.phot_checkbox.value', 'settings_info.ast_checkbox.value', watch = True)
@@ -331,6 +341,7 @@ class ColorPanel(Viewer):
                 else:
                     self.ast_clr_rows[trace_key].visible = False
 
+
     @pn.depends('settings_info.dashboard_checkbox.value', watch = True)
     def hide_show_cards(self):
         if (self.settings_info.lock_trigger == False) and ('color' in self.settings_info.genrl_plot_checkbox.value):
@@ -344,6 +355,7 @@ class ColorPanel(Viewer):
             # This will close all cards in the accordion
             self.color_panel_accordion.active = []
 
+
     def hide_show_floatpanel(self, *event):
         match ['color' in event[0].old, 'color' in event[0].new]:
             case [False, True]:
@@ -353,6 +365,7 @@ class ColorPanel(Viewer):
 
             case [_, False]:
                 self.color_panel_layout.clear()
+
 
     def __panel__(self):
         return self.color_panel_layout

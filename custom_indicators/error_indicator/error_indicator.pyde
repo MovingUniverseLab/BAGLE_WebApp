@@ -76,6 +76,6 @@ def draw():
     # This will save 360 frames
     saveFrame('frames_' + theme + '/img_####.png')
     
-    angle += 2
+    angle += 4
     if angle >= 360:
         noLoop()
