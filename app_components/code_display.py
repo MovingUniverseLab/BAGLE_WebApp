@@ -131,8 +131,10 @@ class CodePanel(Viewer):
                     # Packages
                     ################################################
                     import numpy as np
+                    import plotly.graph_objects as go
+                    
                     from bagle import model
-
+                    
                     # Note: celerite is only used for Gaussian Process
                     import celerite
                 '''

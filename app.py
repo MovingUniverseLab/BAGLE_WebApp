@@ -7,7 +7,6 @@ from panel.viewable import Viewer
 from app_utils import styles, traces, indicators
 from app_components import mod_select, paramztn_select, settings_tabs, param_summary, color_panel, plots, code_display
 
-''
 ################################################
 # Initialize Panel
 ################################################
@@ -21,7 +20,7 @@ pn.config.raw_css.append(styles.PAGE_RAW_CSS)
 ################################################
 class Dashboard(Viewer):
     def __init__(self, paramztn_info, **params):
-        # Note: the order in which the components are instantiated will determine precedence for updates taht have the same dependency
+        # Note: the order in which the components are instantiated will determine precedence for updates that have the same dependency
 
         # Parameter section
         self.paramztn_info = paramztn_info

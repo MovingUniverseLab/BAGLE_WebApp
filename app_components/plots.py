@@ -3,6 +3,7 @@
 ################################################
 import numpy as np
 import plotly.graph_objects as go
+import threading
 
 import panel as pn
 from panel.viewable import Viewer
@@ -27,6 +28,13 @@ class PlotPanel(Viewer):
     ########################
     def __init__(self, **params):
         super().__init__(**params)
+
+        self.time_fn_dependency = {
+            'throttled': False, # Parameter to determine if time slider is throttled
+            'watchers': [], # List of watchers for time slider
+            'functions': [self._update_plot_time] # List of functions with time slider dependency
+        }
+
         # Set up initial figure formats with default theme
         self.base_figs = {}
         self._update_base_figs()
@@ -47,13 +55,12 @@ class PlotPanel(Viewer):
         )
     
         # Define dependencies
+        self.set_time_slider_throttle()
         self.settings_info.param_sliders['Num_pts'].param.watch(self._update_all_plots, 'value_throttled')
+        self.settings_info.param_sliders['Num_pts'].param.watch(self.set_time_slider_throttle, 'value')
 
         # Note: precedence here makes sure that 'self._update_phot_plots' happens after 'self.trace_info._update_gp_samps'
         self.settings_info.param_sliders['Num_samps'].param.watch(self._update_phot_plots, 'value', precedence = 10)
-
-        self.settings_info.param_sliders['Time'].param.watch(self._update_phot_plots, 'value')
-        self.settings_info.param_sliders['Time'].param.watch(self._update_ast_plots, 'value')
 
         for clr_picker in self.clr_info.fig_clr_pickers.values():
             clr_picker.param.watch(self._update_base_figs, 'value')
@@ -68,6 +75,7 @@ class PlotPanel(Viewer):
                 clr_picker.param.watch(self._update_trace_clrs, 'value')
         
         self.clr_info.theme_dropdown.param.watch(self.set_plot_theme, 'value')
+
 
     def make_plot_components(self):
         plotly_panes, plot_boxes = {}, {}
@@ -97,6 +105,27 @@ class PlotPanel(Viewer):
         return plotly_panes, plot_boxes
         
 
+    def set_time_slider_throttle(self, *event):
+        if self.settings_info.param_sliders['Num_pts'].value >= 10000:
+            self.time_fn_dependency['throttled'] = True
+            dependency = 'value_throttled'
+        else:
+            self.time_fn_dependency['throttled'] = False
+            dependency = 'value'
+
+        # Unwatch before updating to prevent multiple repeated watchers (memory leaks)
+        if len(self.time_fn_dependency['watchers']) != 0:
+            for watcher in self.time_fn_dependency['watchers']:
+                self.settings_info.param_sliders['Time'].param.unwatch(watcher)
+
+            self.time_fn_dependency['watchers'] = []
+
+        # Add watcher for functions
+        for function in self.time_fn_dependency['functions']:
+            watcher = self.settings_info.param_sliders['Time'].param.watch(function, dependency)
+            self.time_fn_dependency['watchers'].append(watcher)
+
+
     @pn.depends('settings_info.errored_state', watch = True)
     def set_errored_layout(self):
         if self.settings_info.errored_state == True:
@@ -105,7 +134,7 @@ class PlotPanel(Viewer):
 
 
     def set_loading_layout(self):
-        for name in styles.ALL_PLOT_NAMES:
+        for i, name in enumerate(styles.ALL_PLOT_NAMES):
             self.plot_boxes[name].objects = [indicators.component_loading]
 
 
@@ -268,7 +297,7 @@ class PlotPanel(Viewer):
                 # Check if throttled Num_pts was the event
                 if (event != ()) and (event[0].obj.name == self.settings_info.param_sliders['Num_pts'].name):
                     self.set_loading_layout()
-                
+
                 # Check if parameter sliders are throttled
                 elif self.settings_info.throttled == True:
                     self.set_loading_layout()
@@ -284,6 +313,16 @@ class PlotPanel(Viewer):
     
             except:
                 self.settings_info.set_param_errored_layout(undo = False)
+
+
+    def _update_plot_time(self, *event):
+        # Check if time slider is throttled
+        if self.time_fn_dependency['throttled'] == True:
+            self.set_loading_layout()
+
+        # Update plots
+        self._update_phot_plots()
+        self._update_ast_plots()       
 
 
     @pn.depends('settings_info.dashboard_checkbox.value', 'settings_info.phot_checkbox.value', 'settings_info.genrl_plot_checkbox.value', watch = True)
@@ -363,59 +402,63 @@ class PlotPanel(Viewer):
             time_idx = np.where(time <= self.settings_info.param_sliders['Time'].value)[0]
 
             for plot_name in self.trace_info.selected_ast_plots:
-                # Create figure
-                ast_fig = go.Figure(self.base_figs[plot_name])
+                plot_thread = threading.Thread(target = self.update_ast_single, args = (plot_name, time_idx))
+                plot_thread.start()
 
-                # Reset the current trace index before plotting
-                self.trace_info.cache['current_idx'] = 0
+    def update_ast_single(self, plot_name, time_idx):
+        # Create figure
+        ast_fig = go.Figure(self.base_figs[plot_name])
 
-                # Get all trace keys that are to be plotted
-                selected_trace_keys = set(self.trace_info.extra_ast_keys + self.trace_info.main_ast_keys)
+        # Reset the current trace index before plotting
+        self.trace_info.cache['current_idx'] = 0
 
-                # Get all keys with a time trace and plot them
-                    # Note: putting selected_trace_keys first takes longer, but makes ordering much easier
-                selected_time_keys = [key for key in self.trace_info.trace_types['plot_time'] if key in selected_trace_keys]
-                all_x, all_y = [], []
+        # Get all trace keys that are to be plotted
+        selected_trace_keys = set(self.trace_info.extra_ast_keys + self.trace_info.main_ast_keys)
 
-                for trace_key in selected_time_keys:
-                    trace = self.trace_info.all_traces[trace_key]
-                    trace.plot_time(fig = ast_fig, plot_name = plot_name, time_idx = time_idx)
-                    x_list, y_list = trace.get_xy_lists(plot_name = plot_name)
-                    all_x += x_list
-                    all_y += y_list
+        # Get all keys with a time trace and plot them
+            # Note: putting selected_trace_keys first takes longer, but makes ordering much easier
+        selected_time_keys = [key for key in self.trace_info.trace_types['plot_time'] if key in selected_trace_keys]
+        all_x, all_y = [], []
 
-                # Get all keys with a full trace and plot them
-                    # Note: putting selected_trace_keys first takes longer, but makes ordering much easier
-                if 'full_trace' in self.settings_info.genrl_plot_checkbox.value:
-                    selected_full_keys = [key for key in self.trace_info.trace_types['plot_full'] if key in selected_trace_keys]
+        for trace_key in selected_time_keys:
+            trace = self.trace_info.all_traces[trace_key]
+            trace.plot_time(fig = ast_fig, plot_name = plot_name, time_idx = time_idx)
+            x_list, y_list = trace.get_xy_lists(plot_name = plot_name)
+            all_x += x_list
+            all_y += y_list
 
-                    for trace_key in selected_full_keys:
-                        self.trace_info.all_traces[trace_key].plot_full(fig = ast_fig, plot_name = plot_name)
+        # Get all keys with a full trace and plot them
+            # Note: putting selected_trace_keys first takes longer, but makes ordering much easier
+        if 'full_trace' in self.settings_info.genrl_plot_checkbox.value:
+            selected_full_keys = [key for key in self.trace_info.trace_types['plot_full'] if key in selected_trace_keys]
 
-                # Get all keys with a marker trace and plot them
-                    # Note: putting selected_trace_keys first takes longer, but makes ordering much easier
-                if 'marker' in self.settings_info.genrl_plot_checkbox.value:
-                    selected_marker_keys = [key for key in self.trace_info.trace_types['plot_marker'] if key in selected_trace_keys]
+            for trace_key in selected_full_keys:
+                self.trace_info.all_traces[trace_key].plot_full(fig = ast_fig, plot_name = plot_name)
 
-                    for trace_key in selected_marker_keys:
-                        self.trace_info.all_traces[trace_key].plot_marker(fig = ast_fig, plot_name = plot_name, marker_idx = time_idx[-1])
+        # Get all keys with a marker trace and plot them
+            # Note: putting selected_trace_keys first takes longer, but makes ordering much easier
+        if 'marker' in self.settings_info.genrl_plot_checkbox.value:
+            selected_marker_keys = [key for key in self.trace_info.trace_types['plot_marker'] if key in selected_trace_keys]
 
-                # Set up traces to fix axis limits
-                min_x, max_x = np.nanmin(all_x), np.nanmax(all_x)
-                min_y, max_y = np.nanmin(all_y), np.nanmax(all_y)
+            for trace_key in selected_marker_keys:
+                self.trace_info.all_traces[trace_key].plot_marker(fig = ast_fig, plot_name = plot_name, marker_idx = time_idx[-1])
 
-                traces.add_limit_trace(
-                    fig = ast_fig, 
-                    x_limits = [min_x, max_x],
-                    y_limits = [min_y, max_y]
-                )
+        # Set up traces to fix axis limits
+        min_x, max_x = np.nanmin(all_x), np.nanmax(all_x)
+        min_y, max_y = np.nanmin(all_y), np.nanmax(all_y)
 
-                # Update astrometry pane with figure
-                self.plotly_panes[plot_name].object = ast_fig
+        traces.add_limit_trace(
+            fig = ast_fig, 
+            x_limits = [min_x, max_x],
+            y_limits = [min_y, max_y]
+        )
 
-                # Check if loading or error indicator is on
-                if 'indicator' in self.plot_boxes[plot_name].objects[0].name:
-                        self.plot_boxes[plot_name].objects = [self.plotly_panes[plot_name]]
+        # Update astrometry pane with figure
+        self.plotly_panes[plot_name].object = ast_fig
+
+        # Check if loading or error indicator is on
+        if 'indicator' in self.plot_boxes[plot_name].objects[0].name:
+                self.plot_boxes[plot_name].objects = [self.plotly_panes[plot_name]]
 
 
     ########################

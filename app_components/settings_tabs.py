@@ -116,8 +116,8 @@ class SettingsTabs(Viewer):
             object = f'''
                 <div style="font-size:{styles.FONTSIZES['tabs_txt']};font-family:{styles.HTML_FONTFAMILY}">
                     <p style = "margin-bottom:0.6rem; padding:0"><b>Note:</b> Trace resolution slider is always throttled.</p>
-                    <p style = "margin-bottom:0.6rem; padding:0"><b>Note:</b> Parameter sliders are throttled for binary-lens models and when the number of points exceed 10000.</p>
-                    <p style = "margin-bottom:0.6rem; padding:0"><b>Note:</b> For a smoother animation, changing the Time slider will only approximate the ending point of traces. For an accurate ending point, please change Time from the Parameter Values section.</p>
+                    <p style = "margin-bottom:0.6rem; padding:0"><b>Note:</b> Time and Parameter sliders are throttled when the number of points exceed 10000. Additionally, Parameter sliders are also always throttled for binary-lens models.</p>
+                    <p style = "margin-bottom:0.6rem; padding:0"><b>Note:</b> Changing the Time slider will only approximate the ending point of traces. For an accurate ending point, please change Time from the Parameter Values section.</p>
                 </div>
             ''',
             styles = {'color':styles.CLRS['txt_secondary'],
@@ -356,7 +356,7 @@ class SettingsTabs(Viewer):
 
         super().__init__(**params)
         # set dependencies and on-edit functions
-        self.param_sliders['Num_pts'].param.watch(self._change_slider_throttle, 'value_throttled')
+        self.param_sliders['Num_pts'].param.watch(self.set_mod_slider_throttle, 'value_throttled')
         self.param_sliders['Time'].param.watch(self._update_param_values, 'value')
 
         self.param_table.on_edit(self._update_param_table_change)
@@ -558,7 +558,6 @@ class SettingsTabs(Viewer):
         
             # Update if slider already exists
             if param in self.param_sliders.keys():
-                # Unwatch before updating to prevent multiple repeated watchers (memory leaks)
                 self.param_sliders[param].param.update(
                     value = current_val, 
                     start = min_val, 
@@ -594,7 +593,7 @@ class SettingsTabs(Viewer):
         
         # Make watcher for slider
         # Note: throttled is enabled for binary lens because computation time is significantly longer
-        self._change_slider_throttle()
+        self.set_mod_slider_throttle()
         
         # Clear error message if no errors
         self.slider_error_msg.object = None
@@ -645,8 +644,8 @@ class SettingsTabs(Viewer):
                 self.trigger_param_change = not self.trigger_param_change
     
 
-    def _change_slider_throttle(self, *event):
-        # Lock needed to prevent overlap with changing data table
+    def set_mod_slider_throttle(self, *event):
+        # Lock needed to prevent overlap with changing data table (the function is called after num_pts is changed)
         # BL check needed to prevent undoing throttle for binary-lens models
         if self.lock_trigger == False:
             if (self.param_sliders['Num_pts'].value >= 10000) or ('BL' in self.paramztn_info.selected_paramztn):
