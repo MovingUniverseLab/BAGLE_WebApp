@@ -2,13 +2,13 @@
 angle = 0
 
 # Radius of circle
-radius = 25
+radius = 27
 
 # Number of triangles
 num_tri = 12
 
 # Initial equilateral triangle side-length
-l_side = 50
+l_side = 54
 
 # (x, y) coordinates of initial equilateral triangle
 # This is a equilateral triangle with lower-right vertex at (0, 0)
@@ -34,14 +34,14 @@ theme = 'dark'
 # Setup and Drawing
 ##########################################
 def setup():
-    size(170, 170)
+    size(180, 180)
     pixelDensity(1)
     
 def draw():
     global angle
     
     background(clrs['bg_' + theme])
-    strokeWeight(1.2)
+    strokeWeight(1.3)
     
     # Translate from top-left to better show drawing
     translate(width/2, height/2)
@@ -74,8 +74,8 @@ def draw():
         popMatrix()
 
     # This will save frames
-    # saveFrame('frames_' + theme + '/img_####.png')
+    saveFrame('frames_' + theme + '/img_####.png')
     
-    angle += 5
-    if angle >= 360:
+    angle += 3
+    if angle >= 180:
         noLoop()

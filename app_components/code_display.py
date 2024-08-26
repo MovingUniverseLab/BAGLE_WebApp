@@ -2,6 +2,7 @@
 # Packages
 ################################################
 import textwrap
+import numpy as np
 
 import panel as pn
 from panel.viewable import Viewer
@@ -27,6 +28,7 @@ class CodePanel(Viewer):
         self.samps_watcher = None
 
         self.code_display = pn.widgets.CodeEditor(
+            name = 'code_display',
             sizing_mode = 'stretch_both', 
             language = 'python',
             theme = styles.THEMES['code_theme'],
@@ -64,7 +66,7 @@ class CodePanel(Viewer):
 
     def set_errored_layout(self, *event):
         if event[0].obj.value == True:
-            self.code_layout.objects = [indicators.error]
+            self.code_layout.objects = [indicators.get_indicator('error')]
 
 
     def reset_scroll(self):
@@ -146,7 +148,7 @@ class CodePanel(Viewer):
                 mod_param_values = self.settings_info.mod_param_values
 
                 for i, key in enumerate(mod_param_values.keys()):
-                    value = mod_param_values[key]
+                    value = np.round(mod_param_values[key], 5)
 
                     if i != len(mod_param_values.keys()) - 1:
                         comma = ','
@@ -197,7 +199,7 @@ class CodePanel(Viewer):
                     py_code += textwrap.dedent(code)
 
                 # Check if loading/error indicator is displayed
-                if 'indicator' in self.code_layout.objects[0].name:
+                if self.code_layout.objects[0].name != self.code_display.name:
                     self.code_layout.objects = [self.code_display]
 
                 self.code_display.value = py_code

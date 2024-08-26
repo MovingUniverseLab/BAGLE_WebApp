@@ -105,7 +105,7 @@ class Dashboard(Viewer):
             # Note: 'set_default_tabs' leads to 'trigger_param_change', which will update everything else (e.g. plots, summary table, etc.)
             # Note: 'selected_paramztn' dependency of set_default_tabs could also be put in settings_tabs.py, 
                 # but I chose to put it here to update everything before dashboard gets populated. This is the same with 'set_loading_layout' and 'reset_scroll'.
-            self.dashboard_layout.objects = [indicators.startup]
+            self.dashboard_layout.objects = [indicators.get_indicator('startup')]
             self.param_summary.reset_scroll()
             self.code_panel.reset_scroll()
             self.plot_panel.set_loading_layout()

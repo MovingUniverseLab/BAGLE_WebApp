@@ -211,7 +211,7 @@ class AllTraceInfo(param.Parameterized):
         # Set dependencies
         self.param.watch(self._update_main_phot_traces, 'selected_phot_plots')
         self.param.watch(self._update_main_ast_traces, 'selected_ast_plots', precedence = 0)
-        self.param.watch(self._update_extra_ast_traces, 'selected_phot_plots', precedence = 1)
+        self.param.watch(self._update_extra_ast_traces, 'selected_ast_plots', precedence = 1)
         self.settings_info.param_sliders['Num_samps'].param.watch(self._update_gp_samps, 'value', precedence = 0)
 
 
@@ -274,7 +274,6 @@ class AllTraceInfo(param.Parameterized):
     ########################
     # Photometry Methods
     ########################
-    # @pn.depends('selected_phot_plots', watch = True)
     def _update_main_phot_traces(self, *event):
         # Check if photometry is selected in dashboard
         # Check for locks. This is needed to guard against checkbox resets
@@ -370,7 +369,6 @@ class AllTraceInfo(param.Parameterized):
     ########################
     # Astrometry Methods
     ######################## 
-    # @pn.depends('selected_ast_plots', watch = True)
     def _update_main_ast_traces(self, *event):
         # *event is used for 'selected_ast_plots' dependency
 

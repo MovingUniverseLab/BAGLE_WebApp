@@ -22,7 +22,6 @@ class PlotPanel(Viewer):
     trace_info = param.ClassSelector(class_ = traces.AllTraceInfo)
     clr_info = param.ClassSelector(class_ = color_panel.ColorPanel)
 
-
     ########################
     # General Methods
     ########################
@@ -99,7 +98,7 @@ class PlotPanel(Viewer):
 
             # Make flexbox for plotly pane
             plot_boxes[name] = pn.FlexBox(
-                indicators.component_loading,
+                indicators.get_indicator('obj_loading'),
                 justify_content = 'center',
                 align_content = 'center',
                 styles = styles.BASE_PLOTBOX_STYLES
@@ -132,12 +131,12 @@ class PlotPanel(Viewer):
     def set_errored_layout(self, *event):
         if event[0].obj.value == True:
             for name in styles.ALL_PLOT_NAMES:
-                self.plot_boxes[name].objects = [indicators.error]
+                self.plot_boxes[name].objects = [indicators.get_indicator('error')]
 
 
     def set_loading_layout(self):
         for name in styles.ALL_PLOT_NAMES:
-            self.plot_boxes[name].objects = [indicators.component_loading]
+            self.plot_boxes[name].objects = [indicators.get_indicator('obj_loading')]
 
 
     ########################
@@ -281,6 +280,7 @@ class PlotPanel(Viewer):
             self._update_phot_plots()
             self._update_ast_plots()
 
+
     ########################
     # Plotting Methods
     ######################## 
@@ -387,7 +387,7 @@ class PlotPanel(Viewer):
             self.plotly_panes['phot'].object = phot_fig
 
             # Check if loading or error indicator is on
-            if 'indicator' in self.plot_boxes['phot'].objects[0].name:
+            if self.plot_boxes['phot'].objects[0].name != self.plotly_panes['phot'].name:
                 self.plot_boxes['phot'].objects = [self.plotly_panes['phot']]
 
 
@@ -406,6 +406,7 @@ class PlotPanel(Viewer):
             for plot_name in self.trace_info.selected_ast_plots:
                 plot_thread = threading.Thread(target = self.update_ast_single, args = (plot_name, time_idx))
                 plot_thread.start()
+
 
     def update_ast_single(self, plot_name, time_idx):
         # Create figure
@@ -459,7 +460,7 @@ class PlotPanel(Viewer):
         self.plotly_panes[plot_name].object = ast_fig
 
         # Check if loading or error indicator is on
-        if 'indicator' in self.plot_boxes[plot_name].objects[0].name:
+        if self.plot_boxes[plot_name].objects[0].name != self.plotly_panes[plot_name].name:
                 self.plot_boxes[plot_name].objects = [self.plotly_panes[plot_name]]
 
 

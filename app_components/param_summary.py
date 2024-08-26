@@ -33,6 +33,7 @@ class ParamSummary(Viewer):
         self.summary_content = pn.FlexBox(
             self.mod_pane, 
             self.derived_pane, 
+            name = 'summary_content',
             styles = {'width':'max-content', 
                       'height':'100%'})   
         
@@ -54,7 +55,7 @@ class ParamSummary(Viewer):
 
     def set_errored_layout(self, *event):
         if event[0].obj.value == True:
-            self.summary_layout.objects = [indicators.error]
+            self.summary_layout.objects = [indicators.get_indicator('error')]
 
 
     def reset_scroll(self):
@@ -132,7 +133,7 @@ class ParamSummary(Viewer):
             '''     
             self.derived_pane.object = derived_html
 
-            if 'indicator' in self.summary_layout.objects[0].name:
+            if self.summary_layout.objects[0].name != self.summary_content.name:
                 self.summary_layout.objects = [self.summary_content]
             
 

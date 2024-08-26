@@ -42,7 +42,7 @@ class ColorPanel(Viewer):
         self.fig_clr_pickers, self.fig_clrs_layout = self.make_fig_clrs_layout()
         self.trace_clr_pickers, self.clr_cycle_tools, self.phot_clr_rows, self.ast_clr_rows, self.phot_clr_layout, self.ast_clr_layout = self.make_trace_clrs_layout()
 
-        self.all_widgets = list(self.fig_clr_pickers.values()) + list(self.clr_cycle_tools.values())
+        self.all_widgets = list(self.fig_clr_pickers.values()) + list(self.clr_cycle_tools.values()) + [self.theme_dropdown]
         for trace_key in self.trace_clr_pickers.keys():
             if 'clr_cycle' not in self.trace_clr_pickers[trace_key].keys():
                 self.all_widgets += list(self.trace_clr_pickers[trace_key].values())

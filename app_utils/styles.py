@@ -2,11 +2,6 @@
 # Packages
 ################################################
 import panel as pn
-import param
-from panel.viewable import Viewer
-
-from app_components import settings_tabs
-from app_utils import traces
 
 
 ###########################################
