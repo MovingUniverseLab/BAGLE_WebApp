@@ -23,7 +23,7 @@ pip install -r requirements.txt
 # For conda/mamba:
 conda install -y -c conda-forge --file requirements.txt
 ```
-Otherwise, you will need to **remove pymultinest** from the **requirements.txt** before running the command. This is because multinest is not supported in osx-arm64.
+Otherwise, you will need to remove or comment out **pymultinest** from the **requirements.txt** before running the command. This is because multinest is not supported in osx-arm64.
 
 ### 4) Using BAGLE as a Python Package
 Still in the BAGLE_Microlensing directory, navigate into the **src** directory and get its **absolute path** with ```pwd```.

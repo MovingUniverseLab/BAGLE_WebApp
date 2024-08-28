@@ -625,7 +625,6 @@ class CodePanel(Viewer):
         # Check if lock is on.
         if 'code' in self.settings_info.dashboard_checkbox.value:
             if (self.settings_info.lock_trigger == False) and (self.clr_info.lock_trigger == False):
-                print('CODE CHANGED')
                 # Code to import packages
                 package_code = '''
                     ################################################
