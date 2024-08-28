@@ -43,20 +43,20 @@ class SettingsTabs(Viewer):
     db_options_dict = {
         'Phot': {'Photometry': 'phot', 
                  'Parameter Summary': 'summary',
-                 'Display Data Code': 'code'},
+                 'Display Basic Data/Plot Code': 'code'},
 
         'Astrom': {'RA vs. Dec (Astrometry)':'ast_radec', 
                    'RA vs. Time (Astrometry)':'ast_ra', 
                    'Dec vs. Time (Astrometry)':'ast_dec', 
                    'Parameter Summary':'summary',
-                   'Display Data Code': 'code'},
+                   'Display Basic Data/Plot Code': 'code'},
 
         'PhotAstrom': {'Photometry':'phot', 
                        'RA vs. Dec (Astrometry)':'ast_radec', 
                        'RA vs. Time (Astrometry)':'ast_ra', 
                        'Dec vs. Time (Astrometry)':'ast_dec', 
                        'Parameter Summary':'summary',
-                       'Display Data Code': 'code'}
+                       'Display Basic Data/Plot Code': 'code'}
     }
     
 

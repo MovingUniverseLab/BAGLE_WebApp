@@ -518,88 +518,6 @@ class Genrl_Phot(param.Parameterized):
             )
         )
     
-    def get_data_code(self):
-        if self.gp_trace == False:
-            data_code = '''
-                # Non-GP Photometry
-                phot = mod.get_photometry(t)
-            '''
-
-        else:
-            selected_params = self.paramztn_info.selected_params
-            # Get Matern-3/2 parameters
-            log_sig = "mod_params['gp_log_sigma']"
-
-            if 'gp_rho' in selected_params:
-                log_rho = "np.log(mod_params['gp_rho'])"
-            elif 'gp_log_rho' in selected_params:
-                log_rho = "mod_params['gp_log_rho']"
-
-            # DDSHO parameters
-            log_Q = "np.log(2**-0.5)"
-            log_omega0 = "mod_params['gp_log_omega0']"
-
-            if 'gp_log_S0'in selected_params:
-                log_S0 = "mod_params['gp_log_S0']"
-
-            elif 'gp_log_omega04_S0' in selected_params:
-                log_S0 = "mod_params['gp_log_omega04_S0'] - (4 * log_omega0)"
-
-            elif 'gp_log_omega0_S0' in selected_params:
-                log_S0 = "mod_params['gp_log_omega0_S0'] - log_omega0"
-            
-            # Jitter term parameters
-            if 'gp_log_jit_sigma' in selected_params:
-                log_jit_sigma = "mod_param_values['gp_log_jit_sigma']"
-            else: 
-                log_jit_sigma = "np.log(np.average(mag_obs_err))"
-
-            data_code = f'''
-                # Celerite Model
-                cel_mod = model.Celerite_GP_Model(mod, 0)
-
-                # Get Matern-3/2 GP Parameters
-                    # Note: log = Natural Logarithm
-                log_sig = {log_sig}
-                log_rho = {log_rho}
-
-                # Get DDSHO GP parameters
-                    # Note: log = Natural Logarithm
-                log_Q = {log_Q}
-                log_omega0 = {log_omega0}
-                log_S0 = {log_S0}
-
-                # Make fake errors (mimicking OGLE photon noise)
-                flux0 = 4000.0
-                mag0 = 19.0
-                mag_obs = cel_mod.get_value(t)
-
-                flux_obs = flux0 * 10 ** ((mag_obs - mag0) / -2.5)
-                flux_obs_err = flux_obs ** 0.5
-                mag_obs_err = 1.087 / flux_obs_err
-
-                # Make GP model
-                m32 = celerite.terms.Matern32Term(log_sig, log_rho)
-                sho = celerite.terms.SHOTerm(log_S0, log_Q, log_omega0)
-                jitter = celerite.terms.JitterTerm({log_jit_sigma})
-                kernel = m32 + sho + jitter
-
-                gp = celerite.GP(kernel, mean = cel_mod, fit_mean = True)
-                gp.compute(t, mag_obs_err)
-
-                # Make fake photometry data for prior mean of GP
-                mag_obs_corr = gp.sample(size = 1)[0]
-
-                # GP Predictive Mean
-                gp_pred_mean = gp.predict(mag_obs_corr, return_cov = False)
-
-                # GP Prior Mean.  
-                    # Note: mag_obs = mod.get_photometry(time) from a nonGP, PSPL model
-                gp_prior_mean = mag_obs
-            '''
-        
-        return data_code
-
     def get_phot_list(self):
         return list(self.phot)
     
@@ -641,9 +559,9 @@ class Phot_GP_Samps(param.Parameterized):
             clr_cycle = itertools.cycle(self.clr_cycle)
             
             # Lists used to only show the legend for the first sample and put it in front for visual purposes
-            zorder_list = np.repeat(-101, num_samps).tolist()
+            zorder_list = np.repeat(-100, num_samps).tolist()
             show_legend_list = np.repeat(False, num_samps).tolist()
-            zorder_list[0], show_legend_list[0] = -100, True
+            zorder_list[0], show_legend_list[0] = -99, True
             
             # Reset all_trace_idx lists before plotting
             for cycle_idx in range(len(self.clr_cycle)):
@@ -669,15 +587,6 @@ class Phot_GP_Samps(param.Parameterized):
                         hoverinfo = 'skip'
                     )
                 )
-
-    def get_data_code(self):
-        data_code = f'''
-            # GP Prior Samples
-                # shape is [GP sample, time]
-            gp_samps = gp.sample(size = {self.settings_info.param_sliders['Num_samps'].value})
-        '''
-
-        return data_code
 
     def get_phot_list(self):
         phot_list = []
@@ -797,22 +706,6 @@ class Ast_Unres(param.Parameterized):
                 hoverinfo = 'skip'
             )
         )
-
-    def get_data_code(self):
-        if self.lensed_trace == True:
-            data_code = '''
-                # Unresolved, Lensed Source(s)
-                    # shape is [time, RA/Dec]
-                unres_len = mod.get_astrometry(t)
-            '''
-        else:
-            data_code = '''
-                # Unresolved, Unlensed Source(s)
-                    # shape is [time, RA/Dec]
-                unres_unlen = mod.get_astrometry_unlensed(t)
-            '''
-
-        return data_code
     
     def get_xy_lists(self, plot_name):
         x_list = list(self.plot_data[plot_name][0])
@@ -923,21 +816,6 @@ class Ast_PS_ResLensed(param.Parameterized):
                     hoverinfo = 'skip'
                 )
             )
-
-    def get_data_code(self):
-        selected_paramztn = self.paramztn_info.selected_paramztn
-        if 'PL' in selected_paramztn:
-            shape_str = '# For PSPL, shape is [image, time, RA/Dec]'
-        elif 'BL' in selected_paramztn:
-            shape_str = '# For PSBL, shape is [time, image, RA/Dec]'
-
-        data_code = f'''
-            # Resolved, Lensed Source Images
-                {shape_str}
-            res_len = mod.get_resolved_astrometry(t)
-        '''
-
-        return data_code
     
     def get_xy_lists(self, plot_name):
         x_list, y_list = [], []
@@ -986,15 +864,6 @@ class Ast_BS_ResUnlensed(Ast_Unres):
             'ast_ra': (self.cache['time'], ra, None),
             'ast_dec': (self.cache['time'], dec, None)
         }
-        
-    def get_data_code(self):
-        data_code = '''
-            # Resolved, Unlensed Sources
-                # shape is [time, source, RA/Dec]
-            res_unlen = mod.get_resolved_astrometry_unlensed(t)
-        '''
-
-        return data_code
 
 
 class Ast_BS_ResLensed(Ast_PS_ResLensed):
@@ -1054,15 +923,6 @@ class Ast_BS_ResLensed(Ast_PS_ResLensed):
             'ast_ra': (time_list, ra_list),
             'ast_dec': (time_list, dec_list)
         }
-
-    def get_data_code(self):
-        data_code = '''
-            # Resolved, Lensed Source Images
-                # For any binary-source model, shape is [time, source, image, RA/Dec]
-            res_len = mod.get_resolved_astrometry(t)
-        '''
-
-        return data_code
 
 
 ################################################
@@ -1188,24 +1048,6 @@ class Ast_Lens(param.Parameterized):
                     hoverinfo = 'skip'
                 )
             )
-
-    def get_data_code(self):
-        selected_paramztn = self.paramztn_info.selected_paramztn
-        
-        if 'PL' in selected_paramztn:
-            data_code = '''
-                # Point-Lens Astrometry
-                    # shape is [time, RA/Dec]
-                lens_ast = mod.get_lens_astrometry(t)
-            '''
-        elif 'BL' in selected_paramztn:
-            data_code = '''
-                # Binary-lens Astrometry
-                    # shape is [lens, time, RA/Dec]
-                lens_ast = mod.get_resolved_lens_astrometry(t)
-            '''
-
-        return data_code
 
     def get_xy_lists(self, plot_name):
         x_list, y_list = [], []

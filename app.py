@@ -7,6 +7,7 @@ from panel.viewable import Viewer
 from app_utils import styles, traces, indicators
 from app_components import mod_select, paramztn_select, settings_tabs, param_summary, color_panel, plots, code_display
 
+
 ################################################
 # Initialize Panel
 ################################################
@@ -14,6 +15,7 @@ from app_components import mod_select, paramztn_select, settings_tabs, param_sum
 pn.extension('tabulator', 'plotly', 'codeeditor', 'floatpanel', design = styles.THEMES['page_design'])
 pn.config.theme = styles.THEMES['page_theme']
 pn.config.raw_css.append(styles.PAGE_RAW_CSS)
+
 
 ################################################
 # Dashboard - Layout
@@ -41,14 +43,14 @@ class Dashboard(Viewer):
         # Color information
         self.color_panel = color_panel.ColorPanel(settings_info = self.settings_tabs, trace_info = self.trace_info)
 
-        # Code section
-        self.code_panel = code_display.CodePanel(paramztn_info = self.paramztn_info, settings_info = self.settings_tabs, 
-                                                 trace_info = self.trace_info)
-
         # Plot section
         self.plot_panel = plots.PlotPanel(paramztn_info = self.paramztn_info, settings_info = self.settings_tabs, 
                                           trace_info = self.trace_info, clr_info = self.color_panel)
-
+        
+        # Code section
+        self.code_panel = code_display.CodePanel(paramztn_info = self.paramztn_info, settings_info = self.settings_tabs, 
+                                                 trace_info = self.trace_info, clr_info = self.color_panel)
+        
         self.main_content = pn.FlexBox(
             self.plot_panel,
             self.code_panel,

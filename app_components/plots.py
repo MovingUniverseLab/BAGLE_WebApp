@@ -3,7 +3,6 @@
 ################################################
 import numpy as np
 import plotly.graph_objects as go
-import threading
 
 import panel as pn
 from panel.viewable import Viewer
@@ -218,7 +217,7 @@ class PlotPanel(Viewer):
                 trace_plot_names = self.trace_info.selected_phot_plots
             else:
                 trace_plot_names = self.trace_info.selected_ast_plots
-
+            
             # Check if color type is pri_clr, sec_clr, or clr_cycle
                 # clr_cycle is a special case currently used for only GP samples
             if clr_type != 'clr_cycle':
@@ -261,6 +260,7 @@ class PlotPanel(Viewer):
                     trace.line.color = event[0].obj.value
                     trace.marker.color = event[0].obj.value
 
+                
     # @pn.depends('clr_info.theme_dropdown.value', watch = True)
     def set_plot_theme(self, *event):
         theme_dict = self.clr_info.theme_dropdown.value
@@ -404,64 +404,60 @@ class PlotPanel(Viewer):
             time_idx = np.where(time <= self.settings_info.param_sliders['Time'].value)[0]
 
             for plot_name in self.trace_info.selected_ast_plots:
-                plot_thread = threading.Thread(target = self.update_ast_single, args = (plot_name, time_idx))
-                plot_thread.start()
+                # Create figure
+                ast_fig = go.Figure(self.base_figs[plot_name])
 
+                # Reset the current trace index before plotting
+                    # This is repetative when there are multiple astrometry plots checked. Additionally, it prevents the use of threading. Possibly rework how we track trace indices?
+                self.trace_info.cache['current_idx'] = 0
 
-    def update_ast_single(self, plot_name, time_idx):
-        # Create figure
-        ast_fig = go.Figure(self.base_figs[plot_name])
+                # Get all trace keys that are to be plotted
+                selected_trace_keys = set(self.trace_info.extra_ast_keys + self.trace_info.main_ast_keys)
 
-        # Reset the current trace index before plotting
-        self.trace_info.cache['current_idx'] = 0
+                # Get all keys with a time trace and plot them
+                    # Note: putting selected_trace_keys first takes longer, but makes ordering much easier
+                selected_time_keys = [key for key in self.trace_info.trace_types['plot_time'] if key in selected_trace_keys]
+                all_x, all_y = [], []
 
-        # Get all trace keys that are to be plotted
-        selected_trace_keys = set(self.trace_info.extra_ast_keys + self.trace_info.main_ast_keys)
+                for trace_key in selected_time_keys:
+                    trace = self.trace_info.all_traces[trace_key]
+                    trace.plot_time(fig = ast_fig, plot_name = plot_name, time_idx = time_idx)
+                    x_list, y_list = trace.get_xy_lists(plot_name = plot_name)
+                    all_x += x_list
+                    all_y += y_list
 
-        # Get all keys with a time trace and plot them
-            # Note: putting selected_trace_keys first takes longer, but makes ordering much easier
-        selected_time_keys = [key for key in self.trace_info.trace_types['plot_time'] if key in selected_trace_keys]
-        all_x, all_y = [], []
+                # Get all keys with a full trace and plot them
+                    # Note: putting selected_trace_keys first takes longer, but makes ordering much easier
+                if 'full_trace' in self.settings_info.genrl_plot_checkbox.value:
+                    selected_full_keys = [key for key in self.trace_info.trace_types['plot_full'] if key in selected_trace_keys]
 
-        for trace_key in selected_time_keys:
-            trace = self.trace_info.all_traces[trace_key]
-            trace.plot_time(fig = ast_fig, plot_name = plot_name, time_idx = time_idx)
-            x_list, y_list = trace.get_xy_lists(plot_name = plot_name)
-            all_x += x_list
-            all_y += y_list
+                    for trace_key in selected_full_keys:
+                        self.trace_info.all_traces[trace_key].plot_full(fig = ast_fig, plot_name = plot_name)
 
-        # Get all keys with a full trace and plot them
-            # Note: putting selected_trace_keys first takes longer, but makes ordering much easier
-        if 'full_trace' in self.settings_info.genrl_plot_checkbox.value:
-            selected_full_keys = [key for key in self.trace_info.trace_types['plot_full'] if key in selected_trace_keys]
+                # Get all keys with a marker trace and plot them
+                    # Note: putting selected_trace_keys first takes longer, but makes ordering much easier
+                if 'marker' in self.settings_info.genrl_plot_checkbox.value:
+                    selected_marker_keys = [key for key in self.trace_info.trace_types['plot_marker'] if key in selected_trace_keys]
 
-            for trace_key in selected_full_keys:
-                self.trace_info.all_traces[trace_key].plot_full(fig = ast_fig, plot_name = plot_name)
+                    for trace_key in selected_marker_keys:
+                        self.trace_info.all_traces[trace_key].plot_marker(fig = ast_fig, plot_name = plot_name, marker_idx = time_idx[-1])
 
-        # Get all keys with a marker trace and plot them
-            # Note: putting selected_trace_keys first takes longer, but makes ordering much easier
-        if 'marker' in self.settings_info.genrl_plot_checkbox.value:
-            selected_marker_keys = [key for key in self.trace_info.trace_types['plot_marker'] if key in selected_trace_keys]
+                # Set up traces to fix axis limits
+                min_x, max_x = np.nanmin(all_x), np.nanmax(all_x)
+                min_y, max_y = np.nanmin(all_y), np.nanmax(all_y)
 
-            for trace_key in selected_marker_keys:
-                self.trace_info.all_traces[trace_key].plot_marker(fig = ast_fig, plot_name = plot_name, marker_idx = time_idx[-1])
+                traces.add_limit_trace(
+                    fig = ast_fig, 
+                    x_limits = [min_x, max_x],
+                    y_limits = [min_y, max_y]
+                )
 
-        # Set up traces to fix axis limits
-        min_x, max_x = np.nanmin(all_x), np.nanmax(all_x)
-        min_y, max_y = np.nanmin(all_y), np.nanmax(all_y)
+                # Update astrometry pane with figure
+                self.plotly_panes[plot_name].object = ast_fig
 
-        traces.add_limit_trace(
-            fig = ast_fig, 
-            x_limits = [min_x, max_x],
-            y_limits = [min_y, max_y]
-        )
-
-        # Update astrometry pane with figure
-        self.plotly_panes[plot_name].object = ast_fig
-
-        # Check if loading or error indicator is on
-        if self.plot_boxes[plot_name].objects[0].name != self.plotly_panes[plot_name].name:
-                self.plot_boxes[plot_name].objects = [self.plotly_panes[plot_name]]
+                # Check if loading or error indicator is on
+                if self.plot_boxes[plot_name].objects[0].name != self.plotly_panes[plot_name].name:
+                        self.plot_boxes[plot_name].objects = [self.plotly_panes[plot_name]]
 
 
     ########################

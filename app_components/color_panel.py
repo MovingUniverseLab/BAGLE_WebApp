@@ -133,7 +133,6 @@ class ColorPanel(Viewer):
         theme_dict = self.theme_dropdown.value
         if theme_dict != 'None':
             self.lock_trigger = True
-
             # Change value of figure color pickers
             for fig_key in self.fig_clr_pickers.keys():
                 self.fig_clr_pickers[fig_key].value = theme_dict[fig_key]
@@ -146,7 +145,6 @@ class ColorPanel(Viewer):
                 else:
                     for i, clr in enumerate(theme_dict[trace_key]['clr_cycle']):
                         self.trace_clr_pickers[trace_key]['clr_cycle'][i].value = clr
-
             self.lock_trigger = False
 
 
