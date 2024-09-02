@@ -11,7 +11,7 @@ HTML_FONTFAMILY = 'Helvetica'
 
 # Dictionary for font sizes
 FONTSIZES = {
-    'page_title':' 1.6rem',
+    'page_title':' 2.6rem',
     'page_header': '1.4rem',
     'error_paramztn': '1.2rem',
     'dropdown': '0.75rem',

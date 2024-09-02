@@ -324,17 +324,28 @@ class SettingsTabs(Viewer):
                     <b><u>GitHub Repositories:</u></b>
                 </span>
                 </br>
-                <span style="font-size:{styles.FONTSIZES['tabs_txt']};color:{styles.CLRS['txt_primary']}">
-                    Please feel free to send any feedback through the BAGLE Web App repo. Thank you!
+                <span style="font-size:{styles.FONTSIZES['tabs_txt']};color:{styles.CLRS['txt_secondary']}">
+                    Feel free to send any issues or feedback through the BAGLE Web App repo. Thank you!
                 </span>
                 </br>
                 <ul style="font-size:{styles.FONTSIZES['summary_txt']}">
                     <li><a href="https://github.com/MovingUniverseLab/BAGLE_WebApp" target="_blank">BAGLE Web Application</a></li>
                     <li><a href="https://github.com/MovingUniverseLab/BAGLE_Microlensing/tree/dev" target="_blank">BAGLE Microlensing (Dev Branch)</a></li>
                 </ul>
+                <span style="font-size:{styles.FONTSIZES['page_header']}">
+                    <b><u>About</u></b>
+                </span>
+                </br>
+                <span style="font-size:{styles.FONTSIZES['tabs_txt']};color:{styles.CLRS['txt_secondary']}">
+                    This web application was developed by Jeff Chen as part of a research project with UC Berkeley's Moving Universe Lab. 
+                    The purpose of this calculator is to visually present the photometry/astrometry models from the <span style="font-weight:600">Bayesian Analysis of Gravitational Lensing Events (BAGLE)</span> Python package.
+                    As such, if you use this resource, please make sure to cite <span style="font-weight:600">BAGLE</span>.
+                </span>
+                </br></br>
             ''',
+            sizing_mode = 'stretch_width',
+            align = 'center',
             styles = {'color':styles.CLRS['txt_primary'],
-                      'width':'95%', 
                       'font-family':styles.HTML_FONTFAMILY}
         )
 
@@ -357,7 +368,7 @@ class SettingsTabs(Viewer):
             self.refs_cites,
             styles = {'border':f'{styles.CLRS["page_border"]} solid 0.08rem', 
                       'background':styles.CLRS['page_secondary'], 
-                      'overflow-x':'scroll'}
+                      'overflow-x':'scroll', 'overflow-y':'hidden'}
         )
 
         super().__init__(**params)
@@ -376,19 +387,21 @@ class SettingsTabs(Viewer):
         self.tabs_layout.stylesheets = [styles.BASE_TABS_STYLESHEET]
     
 
-    def set_param_errored_layout(self, undo):    
+    def set_param_errored_layout(self, undo):
         if (undo == True) and (self.errored_state['params'].value == True):
+            self.errored_state['params'].value = False
             self.set_base_layout()
 
-            event_slider = self.param_sliders[self.current_param_change]
-            event_slider.stylesheets = [styles.BASE_SLIDER_STYLESHEET]
+            # event_slider = self.param_sliders[self.current_param_change]
+            # event_slider.stylesheets = [styles.BASE_SLIDER_STYLESHEET]
 
             for param in self.param_sliders.keys():
+                self.param_sliders[param].stylesheets = [styles.BASE_SLIDER_STYLESHEET]
                 self.param_sliders[param].disabled = False
 
-            self.errored_state['params'].value = False
-
         elif undo == False:
+            self.errored_state['params'].value = True
+
             self.tabs_layout.stylesheets = [styles.ERRORED_TABS_STYLESHEET]
             self.tabs_layout.active = 0
 
@@ -403,8 +416,6 @@ class SettingsTabs(Viewer):
             self.param_table.disabled = True
             for cb in self.all_checkboxes:
                 cb.disabled = True
-
-            self.errored_state['params'].value = True
 
 
     def set_slider_errored_layout(self, undo): 

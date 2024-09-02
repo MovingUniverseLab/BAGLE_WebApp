@@ -1,0 +1,7 @@
+Developers:
+    - Jeff Chen <jechen00@gmail.com>
+
+
+Contributors:
+    - Jessica Lu <jlu.astro@berkeley.edu>
+    - Moving Universe Lab

@@ -113,12 +113,9 @@ class Dashboard(Viewer):
             self.plot_panel.set_loading_layout()
             self.settings_tabs.set_default_tabs()
             self.dashboard_layout.styles = {
-                'margin-left':'1%',
-                'margin-right':'1%',
                 'min-height':'500px',
                 'max-height':'1500px',
                 'height':'100vh',
-                'width': '98%'
             }
             self.dashboard_layout.objects = [self.main_row, self.param_row]
 
@@ -188,16 +185,48 @@ class Dashboard(Viewer):
 ################################################
 class BAGLECalc(Viewer):
     def __init__(self, **params):
-        self.page_title = pn.widgets.StaticText(
-            value = 'BAGLE Calculator', 
-            styles = {'font-size': styles.FONTSIZES['page_title'], 
-                      'font-weight': '600', 
-                      'margin-bottom': '-0.4rem'}
-        )
-    
         self.mod_row = mod_select.ModSelect()
         self.paramztn_row = paramztn_select.ParamztnSelect(mod_info = self.mod_row)
         self.dashboard = Dashboard(paramztn_info = self.paramztn_row)
+
+        self.page_title = pn.pane.HTML(
+            object = f'''
+                <span style="color:{styles.CLRS['txt_primary']};font-size:{styles.FONTSIZES['page_title']}; font-weight:600;">
+                    BAGLE Calculator
+                </span>
+            ''',
+            styles = {'align-content':'center',
+                      'text-align':'center',
+                      'height':'100%',
+                      'width':'100%',
+                      'margin':'0',
+                      'position':'absolute',
+                      'z-index':'-100'}
+        )
+        self.mulab_logo = pn.pane.PNG(
+            object = 'logos/mulab_logo.png',
+            alt_text = 'MU Lab',
+            link_url = 'https://jluastro.atlassian.net/wiki/spaces/MULab/overview',
+            height = 70,
+            styles = {'margin':'0'}
+        )
+        self.github_logo = pn.pane.PNG(
+            object = 'logos/github-mark-white.png',
+            alt_text = 'GitHub Repo',
+            link_url = 'https://github.com/MovingUniverseLab/BAGLE_WebApp',
+            height = 55,
+            styles = {'margin':'0'}
+        )
+    
+        self.title_layout = pn.FlexBox(
+            self.mulab_logo,
+            self.page_title,
+            self.github_logo,
+            flex_direction = 'row',
+            justify_content = 'space-between',
+            align_items = 'center',
+            styles = {'width':'100%', 'margin-bottom':'-0.4rem'}
+        )
     
         # Model header
         self.mod_header = pn.widgets.StaticText(
@@ -217,13 +246,13 @@ class BAGLECalc(Viewer):
                       'margin-top': '0'}
         )
     
-        self.header_col = pn.Column(
+        self.select_title_col = pn.Column(
             self.mod_header,
             self.paramztn_header,
             styles = {'margin-top':'-0.08rem'}
         )
 
-        self.selection_col = pn.Column(
+        self.select_widget_col = pn.Column(
             self.mod_row,
             self.paramztn_row,
             styles = {'width':'70%'}
@@ -231,41 +260,50 @@ class BAGLECalc(Viewer):
 
         # Layout for model and parameterization selection rows
         self.selection_layout = pn.FlexBox(
-            self.header_col,
-            self.selection_col,
+            self.select_title_col,
+            self.select_widget_col,
             flex_direction = 'row',
             justify_content = 'center',
-            flex_wrap = 'nowrap',
-            styles = {'width': '90%', 
-                      'margin-bottom': '-0.2rem'}
+            # flex_wrap = 'nowrap',
+            styles = {'margin-bottom': '-0.2rem'}
         )
-    
+
+        # Content layout for parge title and selection widgets (model/parameterization)
+        self.header_content = pn.FlexBox(
+            self.title_layout,
+            pn.layout.Divider(),
+            self.selection_layout,
+            pn.layout.Divider(),
+            styles = {'max-width':'1500px', 'margin-top':'0.2%'}
+        )
+
         # Content layout for entire page
         self.page_content = pn.FlexBox(
-            self.page_title,
-            pn.layout.Divider(styles = {'width':'90%'}),
-            self.selection_layout,
-            pn.layout.Divider(styles = {'width':'90%'}),
+            self.header_content,
             self.dashboard,
             flex_direction = 'column',
             align_items = 'center',
             align_content = 'center',
-            styles = {'width': '100%', 
+            styles = {'width': '100%',
+                      'padding-left':'2%',
+                      'padding-right':'2%',
                       'min-width':'1000px',
                       'max-width':'2500px',
                       'height':'fit-content',
                       'overflow-y':'scroll'}
         )
 
-    def __panel__(self):
-        # Center content
-        return pn.Row(
+        self.page_layout = pn.Row(
             pn.HSpacer(),
             self.page_content,
             pn.HSpacer(),
             styles = {'overflow-y':'hidden', 
                       'overflow-x':'scroll'}
         )
+
+    def __panel__(self):
+        # Center content
+        return self.page_layout
     
 
 ################################################
