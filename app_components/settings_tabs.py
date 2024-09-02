@@ -338,7 +338,7 @@ class SettingsTabs(Viewer):
                 </br>
                 <span style="font-size:{styles.FONTSIZES['tabs_txt']};color:{styles.CLRS['txt_secondary']}">
                     This web application was developed by Jeff Chen as part of a research project with UC Berkeley's Moving Universe Lab. 
-                    The purpose of this calculator is to visually present the photometry/astrometry models from the <span style="font-weight:600">Bayesian Analysis of Gravitational Lensing Events (BAGLE)</span> Python package.
+                    It was designed to visually present the photometry/astrometry models from the <span style="font-weight:600">Bayesian Analysis of Gravitational Lensing Events (BAGLE)</span> Python package.
                     As such, if you use this resource, please make sure to cite <span style="font-weight:600">BAGLE</span>.
                 </span>
                 </br></br>
