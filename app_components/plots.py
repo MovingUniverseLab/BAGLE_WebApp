@@ -313,7 +313,6 @@ class PlotPanel(Viewer):
                 self._update_ast_plots()
     
             except:
-                raise
                 self.settings_info.set_param_errored_layout(undo = False)
 
 

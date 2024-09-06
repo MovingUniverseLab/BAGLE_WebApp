@@ -4,7 +4,7 @@
 import panel as pn
 from panel.viewable import Viewer
 
-from app_utils import styles, traces, indicators
+from app_utils import styles, traces, indicators, logos
 from app_components import mod_select, paramztn_select, settings_tabs, param_summary, color_panel, plots, code_display
 
 
@@ -203,25 +203,11 @@ class BAGLECalc(Viewer):
                       'position':'absolute',
                       'z-index':'-100'}
         )
-        self.mulab_logo = pn.pane.PNG(
-            object = 'logos/mulab_logo.png',
-            alt_text = 'MU Lab',
-            link_url = 'https://jluastro.atlassian.net/wiki/spaces/MULab/overview',
-            height = 70,
-            styles = {'margin':'0'}
-        )
-        self.github_logo = pn.pane.PNG(
-            object = 'logos/github-mark-white.png',
-            alt_text = 'GitHub Repo',
-            link_url = 'https://github.com/MovingUniverseLab/BAGLE_WebApp',
-            height = 55,
-            styles = {'margin':'0'}
-        )
     
         self.title_layout = pn.FlexBox(
-            self.mulab_logo,
+            logos.ALL_LOGOS['mulab'],
             self.page_title,
-            self.github_logo,
+            logos.ALL_LOGOS['github'],
             flex_direction = 'row',
             justify_content = 'space-between',
             align_items = 'center',
