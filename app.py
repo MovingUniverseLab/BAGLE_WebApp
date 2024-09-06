@@ -264,7 +264,6 @@ class BAGLECalc(Viewer):
             self.select_widget_col,
             flex_direction = 'row',
             justify_content = 'center',
-            # flex_wrap = 'nowrap',
             styles = {'margin-bottom': '-0.2rem'}
         )
 
