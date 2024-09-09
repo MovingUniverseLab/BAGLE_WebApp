@@ -145,10 +145,9 @@ class SettingsTabs(Viewer):
 
         # This will be populated by 'set_default_tabs'
         self.sliders_layout = pn.Column(
-            # objects = self.sliders_content,
             name = 'Parameter Sliders',
             styles = {'overflow-y':'scroll', 
-                      'height':'100%', 
+                      'height':'100%',
                       'border-top':f'{styles.CLRS["page_border"]} solid 0.08rem'}
         )
 
@@ -298,7 +297,7 @@ class SettingsTabs(Viewer):
             self.genrl_plot_settings, 
             self.phot_settings,
             self.ast_settings,
-            justify_content = 'center',
+            justify_content = 'center'
         )
 
         self.settings_content = [
@@ -310,7 +309,7 @@ class SettingsTabs(Viewer):
         # This will be populated by 'set_default_tabs'
         self.settings_layout = pn.Column(
             name = 'Other Settings',
-            styles = {'overflow-y':'scroll'}
+            styles = {'overflow-y':'scroll', 'height':'100%'}
         )
 
 
@@ -352,8 +351,7 @@ class SettingsTabs(Viewer):
         # This will be populated by 'set_default_tabs'
         self.refs_cites = pn.FlexBox(
             name = 'References/Citations', 
-            sizing_mode = 'stretch_both', 
-            styles = {'overflow-y':'scroll'}
+            styles = {'overflow-y':'scroll', 'height':'100%'}
         )
 
 
