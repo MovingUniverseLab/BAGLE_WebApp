@@ -94,10 +94,11 @@ class ParamSummary(Viewer):
             # Derived parameter summary 
             mod = getattr(model, self.paramztn_info.selected_paramztn)(**self.settings_info.mod_param_values)
             all_params_dict = vars(mod)
-            
+            printed_param_keys = [key for key in all_params_dict.keys() if key in constants.DEFAULT_RANGES.keys()]
+
             derived_html = ''''''
-            for param in all_params_dict.keys():
-                if param not in self.paramztn_info.selected_params + ['raL', 'decL', 'use_gp_phot', 'root_tol']:
+            for param in printed_param_keys:
+                if (param not in self.paramztn_info.selected_params + ['raL', 'decL']):
                     clr = styles.CLRS['txt_primary']
                     if constants.DEFAULT_RANGES[param][0] == None:
                         label = param
