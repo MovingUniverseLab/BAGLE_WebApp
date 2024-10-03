@@ -4,6 +4,7 @@
 import numpy as np
 import plotly.graph_objects as go
 import threading
+import traceback
 
 import panel as pn
 from panel.viewable import Viewer
@@ -313,6 +314,7 @@ class PlotPanel(Viewer):
                 self._update_ast_plots()
     
             except:
+                print('AN ERROR HAS OCCURRED:\n', traceback.format_exc())
                 self.settings_info.set_param_errored_layout(undo = False)
 
 
