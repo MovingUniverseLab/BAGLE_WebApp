@@ -3,21 +3,24 @@ This is a web application designed to showcase the photometry and astrometry of 
 
 ## Recommended Installation Instructions
 ### 1) Create a New Python Environment
-This environment must use **Python >= 3.10**. 
-
-Additionally, if you are using MacOS, there should be extra caution for the platform of the environment. Although the BAGLE Calculator will work perfectly fine with osx-arm64, you **will not** be able to use the BAGLE model fitter in its entirety. If you plan on using the latter, set the platform to osx-64 instead.
+This environment must use **Python >= 3.10**. We recommend creating a new conda or pip environment:
+```
+conda create -n bagle-webapp python=3.14 pip
+conda activate bagle-webapp
+```
 
 ### 2) Install BAGLE
 The BAGLE_Microlensing repository and detailed installation instructions can be found here: [BAGLE GitHub](https://github.com/MovingUniverseLab/BAGLE_Microlensing/tree/dev). Install modes supported include conda, pip, and github.
 ```
-conda install bagle
+pip install git+https://github.com/MovingUniverseLab/BAGLE_Microlensing
 ```
 
 ### 3) Install the BAGLE Web App
+The web app is raw source code and does not include an installer. 
 ```
 git clone https://github.com/MovingUniverseLab/BAGLE_WebApp.git
 cd BAGLE_WebApp
-conda install --file requirements.txt
+conda install -n bagle-webapp --file requirements.txt
 ```
 
 ### 4) Start the BAGLE WebApp
