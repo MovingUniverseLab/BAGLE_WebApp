@@ -17,6 +17,7 @@ conda install bagle
 ```
 git clone https://github.com/MovingUniverseLab/BAGLE_WebApp.git
 cd BAGLE_WebApp
+conda install --file requirements.txt
 ```
 
 ### 4) Start the BAGLE WebApp
