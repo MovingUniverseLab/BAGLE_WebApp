@@ -1,0 +1,63 @@
+# cloudbuild.yaml
+steps:
+  # Step 1: Pull the latest image to use as a layer cache source
+  - name: 'gcr.io/cloud-builders/docker'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        docker pull $_AR_REGION-docker.pkg.dev/$PROJECT_ID/$_AR_REPO_NAME/$__IMAGE_NAME:latest || exit 0
+
+  # Step 2: Build the container image using the Dockerfile and caching
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - '$_AR_REGION-docker.pkg.dev/$PROJECT_ID/$_AR_REPO_NAME/$__IMAGE_NAME:$COMMIT_SHA'
+      - '-t'
+      - '$_AR_REGION-docker.pkg.dev/$PROJECT_ID/$_AR_REPO_NAME/$__IMAGE_NAME:latest'
+      - '--cache-from'
+      - '$_AR_REGION-docker.pkg.dev/$PROJECT_ID/$_AR_REPO_NAME/$__IMAGE_NAME:latest'
+      - '.'
+
+  # Step 3: Push the tagged images to GCP Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - '$_AR_REGION-docker.pkg.dev/$PROJECT_ID/$_AR_REPO_NAME/$__IMAGE_NAME:$COMMIT_SHA'
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - '$_AR_REGION-docker.pkg.dev/$PROJECT_ID/$_AR_REPO_NAME/$__IMAGE_NAME:latest'
+
+  # Step 4: Deploy the built container to Cloud Run
+  - name: 'gcr.io/://google.com'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - '$_SERVICE_NAME'
+      - '--image'
+      - '$_AR_REGION-docker.pkg.dev/$PROJECT_ID/$_AR_REPO_NAME/$__IMAGE_NAME:$COMMIT_SHA'
+      - '--region'
+      - '$_DEPLOY_REGION'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+
+# Images tracking for Cloud Build metadata
+images:
+  - '$_AR_REGION-docker.pkg.dev/$PROJECT_ID/$_AR_REPO_NAME/$__IMAGE_NAME:$COMMIT_SHA'
+  - '$_AR_REGION-docker.pkg.dev/$PROJECT_ID/$_AR_REPO_NAME/$__IMAGE_NAME:latest'
+
+# Substitution variable placeholders for flexible environments
+substitutions:
+  _AR_REGION: us-central1
+  _AR_REPO_NAME: BAGLE_WebApp
+  _DEPLOY_REGION: us-central1
+  _SERVICE_NAME: bagle
+  __IMAGE_NAME: bagle_webapp
+
+options:
+  logging: CLOUD_LOGGING_ONLY
