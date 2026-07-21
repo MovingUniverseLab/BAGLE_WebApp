@@ -15,7 +15,8 @@ conda install bagle
 
 ### 3) Install the BAGLE Web App
 ```
-pip install git+https://github.com/MovingUniverseLab/BAGLE_WebApp.git
+git clone https://github.com/MovingUniverseLab/BAGLE_WebApp.git
+cd BAGLE_WebApp
 ```
 
 ### 4) Start the BAGLE WebApp
