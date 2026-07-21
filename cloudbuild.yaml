@@ -32,7 +32,7 @@ steps:
       - '$_AR_REGION-docker.pkg.dev/$PROJECT_ID/$_AR_REPO_NAME/$__IMAGE_NAME:latest'
 
   # Step 4: Deploy the built container to Cloud Run
-  - name: 'gcr.io/://google.com'
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud
     args:
       - 'run'
