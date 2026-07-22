@@ -4,6 +4,7 @@ numpy
 pandas
 panel
 param
+joblib
 watchfiles
 plotly
 
