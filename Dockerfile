@@ -8,12 +8,20 @@ RUN apt-get update \
     && apt-get install -y g++ git \
     && rm -rf /var/lib/apt/lists/*
 
+ENV LDFLAGS="-lstdc++"
+
 COPY requirements.txt .
 RUN python3 -m pip install --no-cache-dir --upgrade pip
 RUN python3 -m pip install --no-cache-dir numpy "cython<3.0.0" pybind11
 RUN python3 -m pip install --no-cache-dir celerite
 RUN python3 -m pip install --no-cache-dir --user -r requirements.txt
-RUN python3 -m pip install git+https://github.com/MovingUniverseLab/BAGLE_Microlensing
+# BAGLE branch, tag or commit to install. Override with --build-arg BAGLE_REF=...
+ARG BAGLE_REF=main
+# This file changes whenever BAGLE_REF moves, which busts the Docker layer
+# cache so the pip install below always gets the latest BAGLE.
+ADD https://api.github.com/repos/MovingUniverseLab/BAGLE_Microlensing/commits/${BAGLE_REF} /tmp/bagle_ref.json
+RUN python3 -m pip install --no-cache-dir --user \
+    "git+https://github.com/MovingUniverseLab/BAGLE_Microlensing@${BAGLE_REF}"
 
 COPY . .
 
